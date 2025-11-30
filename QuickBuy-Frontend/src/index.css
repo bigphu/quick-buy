@@ -46,8 +46,7 @@ h1 {
 }
 
 button {
-  gap: 0.5rem;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid rgba(33, 53, 71, 0.08);
   padding: 0.45rem 0.9rem;
   font-size: 0.95rem;
