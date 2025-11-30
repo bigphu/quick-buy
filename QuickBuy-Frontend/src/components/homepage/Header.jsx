@@ -1,7 +1,10 @@
 import React from 'react';
-import { Search, MapPin, RotateCcw, Heart, User, ShoppingCart, LayoutGrid, ChevronDown } from 'lucide-react';
+import { Search, MapPin, RotateCcw, Heart, User, ShoppingCart, LayoutGrid, ChevronDown, Link } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Header() {
+
+    const navigate = useNavigate();
     const navLinks = [
         "New Arrivals",
         "Rollbacks & Deals",
@@ -69,8 +72,9 @@ export default function Header() {
                         </div>
 
                         <div className="relative">
-                            <button className=
-                            " flex items-center justify-center bg-white p-3 rounded-full hover:text-blue-600 transition-colors shadow-sm">
+                            <button 
+                                onClick={() => navigate('/cart')}
+                                className="flex items-center justify-center bg-white p-3 rounded-full hover:text-blue-600 transition-colors shadow-sm">
                                 <ShoppingCart className="w-5 h-5" />
                             </button>
                             <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-[#87C4FF]">
