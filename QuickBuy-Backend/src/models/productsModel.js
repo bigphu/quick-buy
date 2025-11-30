@@ -1,6 +1,6 @@
-const db = require('../config/db');
+import db from "../config/db.js";
 
-const ProductModel = {
+const ProductsModel = {
     // Calls sp_GetLowStockInventory
     getLowStock: async (cityName, productId, stockThreshold) => {
         try {
@@ -28,4 +28,4 @@ const ProductModel = {
     }
 };
 
-module.exports = ProductModel;
+export default ProductsModel;

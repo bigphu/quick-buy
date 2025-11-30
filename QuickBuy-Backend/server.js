@@ -1,6 +1,9 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+
+// Initialize dotenv configuration
+dotenv.config();
 
 const app = express();
 
@@ -9,14 +12,13 @@ app.use(cors());
 app.use(express.json());
 
 // Import Routes
-const cartRoutes = require('./src/routes/cartRoutes');
-const productsRoutes = require('./src/routes/productsRoutes');
-// const clientRoutes = require('./src/routes/userRoutes'); // Uncomment khi đã tạo file
+// import cartRoutes from './src/routes/cartRoutes.js';
+import ProductsRoutes from "./src/routes/productsRoute.js";
+// import clientRoutes from './src/routes/userRoutes.js'; // Uncomment when created
 
-// Sử dụng Routes
-// Mọi request bắt đầu bằng /api/cart sẽ đi vào cartRoutes
-app.use('/api/cart', cartRoutes);
-app.use('/api/products', productsRoutes);
+// Use Routes
+// app.use('/api/cart', cartRoutes);
+app.use('/api/products', ProductsRoutes);
 // app.use('/api/clients', clientRoutes);
 
 // Test Route

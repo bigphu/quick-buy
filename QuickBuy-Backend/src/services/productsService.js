@@ -1,4 +1,4 @@
-const ProductsModel = require('../models/productsModel');
+import ProductsModel from "../models/productsModel.js"
 
 const ProductsService = {
     /**
@@ -34,4 +34,4 @@ const ProductsService = {
     }
 };
 
-module.exports = ProductsService;
+export default ProductsService;

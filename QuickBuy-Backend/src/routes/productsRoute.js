@@ -1,9 +1,10 @@
-const express = require("express");
-const router = express.Router();
-const productsController = require("../controllers/productsController.js");
+import express from "express";
+import ProductsController from "../controllers/productsController.js";
+
+const ProductsRoutes = express.Router();
 
 // Định nghĩa các đường dẫn con cho /api/products
-router.get("/:productId/low-stock", productsController.getLowStock);
-router.get("/top-rated/:category", productsController.getTopRated);
+ProductsRoutes.get("/:productId/low-stock", ProductsController.getLowStock);
+ProductsRoutes.get("/top-rated/:category", ProductsController.getTopRated);
 
-module.exports = router;
+export default ProductsRoutes;

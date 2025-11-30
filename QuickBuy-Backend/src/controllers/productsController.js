@@ -1,7 +1,7 @@
 // CHANGE: Import the Service, not the Model
-const ProductsService = require('../services/productsService');
+import ProductsService  from "../services/productsService.js";
 
-const productsController = {
+const ProductsController = {
 
     // Route: /products/:productId/low-stock
     getLowStock: async (req, res) => {
@@ -70,4 +70,4 @@ const productsController = {
     }
 };
 
-module.exports = productsController;
+export default ProductsController;
