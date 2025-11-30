@@ -5,7 +5,7 @@ import autoprefixer from 'autoprefixer'
 import tailwindcss from '@tailwindcss/postcss';
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
   server: {
     port: 3000,
     host: 'localhost'
