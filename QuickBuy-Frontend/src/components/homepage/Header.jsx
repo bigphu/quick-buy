@@ -63,8 +63,10 @@ export default function Header() {
                                 <span>My Items</span>
                             </button>
 
-                            <button className=
-                            "flex items-center gap-2 bg-transparent border-0 outline-0 hover:text-blue-600 transition-colors">
+                            <button 
+                                onClick={() => navigate('/account')}
+                                className="flex items-center gap-2 bg-transparent border-0 outline-0 hover:text-blue-600 transition-colors cursor-pointer"
+                            >
                                 <User className="w-5 h-5" />
                                 <span>Account</span>
                             </button>
