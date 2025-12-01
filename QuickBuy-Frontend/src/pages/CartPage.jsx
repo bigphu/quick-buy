@@ -4,10 +4,15 @@ import CartItem from "../components/cartpage/CartItem";
 import OrderSummary from "../components/cartpage/OrderSummary";
 import Footer from "../components/cartpage/Footer";
 
+
+import headphone from '../assets/ugreen-35758-10.webp';
+import watch from '../assets/tải xuống.jpg';
+import cap from '../assets/cap.jpg'
+
 const initialItems = [
-  { id: 1, name: "Wireless Headphones", category: "Electronics", price: 89.99, quantity: 1, image: "/img1.jpg" },
-  { id: 2, name: "Smartwatch Pro", category: "Electronics", price: 199.99, quantity: 1, image: "/img2.jpg" },
-  { id: 3, name: "Travel Backpack", category: "Accessories", price: 45.5, quantity: 2, image: "/img3.jpg" },
+  { id: 1, name: "Wireless Headphones", category: "Electronics", price: 89.99, quantity: 1, image: headphone },
+  { id: 2, name: "Smartwatch Pro", category: "Electronics", price: 199.99, quantity: 1, image: watch },
+  { id: 3, name: "Travel Backpack", category: "Accessories", price: 45.5, quantity: 2, image: cap },
 ];
 
 export default function CartPage() {
