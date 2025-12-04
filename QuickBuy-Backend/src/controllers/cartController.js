@@ -1,55 +1,141 @@
+// const db = require('../config/db');
+
+// // Lấy dữ liệu giỏ hàng để hiển thị
+// exports.getCartDetails = async (req, res) => {
+//     try {
+//         const { cartId } = req.params;
+//         // JOIN các bảng để lấy thông tin chi tiết sản phẩm
+//         // Lưu ý: Bảng Product của bạn KHÔNG có cột ảnh, nên ta sẽ xử lý ảnh ở Frontend
+//         const [rows] = await db.execute(`
+//             SELECT 
+//                 ci.CartItemID, 
+//                 ci.Quantity, 
+//                 ci.ItemPrice,
+//                 p.ProductID, 
+//                 p.ProductName, 
+//                 p.ProductPrice, 
+//                 c.CategoryName 
+//             FROM Cart_Item ci
+//             JOIN Product p ON ci.ProductID = p.ProductID
+//             LEFT JOIN Category c ON p.CategoryID = c.CategoryID
+//             WHERE ci.CartID = ?
+//         `, [cartId]);
+        
+//         res.status(200).json(rows);
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: "Lỗi Server khi lấy giỏ hàng" });
+//     }
+// };
+
+// // 1. INSERT (Gọi SP: sp_AddToCart)
+// exports.addToCart = async (req, res) => {
+//     try {
+//         const { cartId, productId, quantity, storeId } = req.body;
+//         // Gọi Stored Procedure
+//         await db.execute('CALL sp_AddToCart(?, ?, ?, ?)', [
+//             cartId, productId, quantity, storeId
+//         ]);
+//         res.status(200).json({ message: "Thêm vào giỏ hàng thành công!" });
+//     } catch (error) {
+//         // Trả về thông báo lỗi từ SIGNAL SQLSTATE trong SP (ví dụ: Hết hàng)
+//         res.status(400).json({ message: error.sqlMessage || "Lỗi thêm sản phẩm" });
+//     }
+// };
+
+// // 2. UPDATE (Gọi SP: sp_UpdateCartItem_BOPIS)
+// exports.updateCartItem = async (req, res) => {
+//     try {
+//         const { cartItemId, newQuantity, storeId } = req.body;
+//         await db.execute('CALL sp_UpdateCartItem_BOPIS(?, ?, ?)', [
+//             cartItemId, newQuantity, storeId
+//         ]);
+//         res.status(200).json({ message: "Cập nhật giỏ hàng thành công!" });
+//     } catch (error) {
+//         res.status(400).json({ message: error.sqlMessage || "Lỗi cập nhật" });
+//     }
+// };
+
+// // 3. DELETE (Gọi SP: sp_DeleteCartItem)
+// exports.deleteCartItem = async (req, res) => {
+//     try {
+//         const { cartItemId } = req.params;
+//         await db.execute('CALL sp_DeleteCartItem(?)', [cartItemId]);
+//         res.status(200).json({ message: "Xóa sản phẩm thành công!" });
+//     } catch (error) {
+//         res.status(400).json({ message: error.sqlMessage || "Lỗi xóa sản phẩm" });
+//     }
+// };
+
+// src/controllers/cartController.js
 const db = require('../config/db');
 
-// Xử lý Add to Cart
-exports.addToCart = async (req, res) => {
-    const { cartId, productId, quantity, storeId } = req.body;
-    try {
-        const sql = 'CALL sp_AddToCart(?, ?, ?, ?)';
-        const [rows] = await db.query(sql, [cartId, productId, quantity, storeId]);
-        res.status(200).json({ message: rows[0][0].Message });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-};
-
-// Xử lý Update Cart
-exports.updateCartItem = async (req, res) => {
-    const { cartItemId, newQuantity, storeId } = req.body;
-    try {
-        const sql = 'CALL sp_UpdateCartItem_BOPIS(?, ?, ?)';
-        const [rows] = await db.query(sql, [cartItemId, newQuantity, storeId]);
-        res.status(200).json({ message: rows[0][0].Message });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-};
-
-// Xử lý Delete Cart Item
-exports.deleteCartItem = async (req, res) => {
-    const cartItemId = req.params.id;
-    try {
-        const sql = 'CALL sp_DeleteCartItem(?)';
-        const [rows] = await db.query(sql, [cartItemId]);
-        res.status(200).json({ message: rows[0][0].Message });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-};
-
-// Lấy danh sách giỏ hàng
+// Lấy dữ liệu giỏ hàng để hiển thị
 exports.getCartDetails = async (req, res) => {
-    const cartId = req.params.cartId;
     try {
-        const sql = `
-            SELECT ci.Cart_item_ID, p.ProductName, ci.Quantity, ci.Item_price, 
-            (ci.Quantity * ci.Item_price) as Subtotal 
-            FROM Cart_item ci
-            JOIN Product p ON ci.Product_ID = p.Product_ID
-            WHERE ci.Cart_ID = ?
-        `;
-        const [rows] = await db.query(sql, [cartId]);
+        const { cartId } = req.params;
+        
+        // SỬA LẠI CÂU SQL:
+        // 1. Join thêm bảng Belongs_To để lấy Category
+        // 2. Bỏ p.Product_Image vì bảng Product không có cột này
+        const [rows] = await db.execute(`
+            SELECT 
+                ci.CartItemID, 
+                ci.Quantity, 
+                ci.ItemPrice,
+                p.ProductID, 
+                p.ProductName, 
+                p.ProductPrice, 
+                c.CategoryName 
+            FROM Cart_Item ci
+            JOIN Product p ON ci.ProductID = p.ProductID
+            LEFT JOIN Belongs_To bt ON p.ProductID = bt.ProductID
+            LEFT JOIN Category c ON bt.CategoryID = c.CategoryID
+            WHERE ci.CartID = ?
+        `, [cartId]);
+        
         res.status(200).json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+    } catch (error) {
+        console.error("Lỗi lấy giỏ hàng:", error); // In lỗi ra terminal để dễ debug
+        res.status(500).json({ message: "Lỗi Server khi lấy giỏ hàng" });
+    }
+};
+
+// 1. INSERT (Gọi SP: sp_AddToCart)
+exports.addToCart = async (req, res) => {
+    try {
+        const { cartId, productId, quantity, storeId } = req.body;
+        // Gọi Stored Procedure
+        await db.execute('CALL sp_AddToCart(?, ?, ?, ?)', [
+            cartId, productId, quantity, storeId
+        ]);
+        res.status(200).json({ message: "Thêm vào giỏ hàng thành công!" });
+    } catch (error) {
+        // Trả về thông báo lỗi từ SIGNAL SQLSTATE trong SP
+        res.status(400).json({ message: error.sqlMessage || "Lỗi thêm sản phẩm" });
+    }
+};
+
+// 2. UPDATE (Gọi SP: sp_UpdateCartItem_BOPIS)
+exports.updateCartItem = async (req, res) => {
+    try {
+        const { cartItemId, newQuantity, storeId } = req.body;
+        await db.execute('CALL sp_UpdateCartItem_BOPIS(?, ?, ?)', [
+            cartItemId, newQuantity, storeId
+        ]);
+        res.status(200).json({ message: "Cập nhật giỏ hàng thành công!" });
+    } catch (error) {
+        res.status(400).json({ message: error.sqlMessage || "Lỗi cập nhật" });
+    }
+};
+
+// 3. DELETE (Gọi SP: sp_DeleteCartItem)
+exports.deleteCartItem = async (req, res) => {
+    try {
+        const { cartItemId } = req.params;
+        await db.execute('CALL sp_DeleteCartItem(?)', [cartItemId]);
+        res.status(200).json({ message: "Xóa sản phẩm thành công!" });
+    } catch (error) {
+        res.status(400).json({ message: error.sqlMessage || "Lỗi xóa sản phẩm" });
     }
 };
