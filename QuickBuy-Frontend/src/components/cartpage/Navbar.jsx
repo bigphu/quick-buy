@@ -13,7 +13,7 @@ export default function Navbar({ cartCount }) {
 
           {/* Category Links */}
           <nav className="hidden md:flex items-center gap-8 text-gray-800 font-medium">
-            <a href="#" className="hover:text-gray-600">Home</a>
+            <a href="../" className="hover:text-gray-600">Home</a>
             <a href="#" className="hover:text-gray-600">New Arrivals</a>
             <a href="#" className="hover:text-gray-600">Electronics</a>
             <a href="#" className="hover:text-gray-600">Grocery</a>

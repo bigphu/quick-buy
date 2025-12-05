@@ -1,6 +1,6 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
-
+try {
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -11,5 +11,9 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
-const promisePool = pool.promise();
-module.exports = promisePool;
+console.log('Khong chay duoc');
+module.exports = pool;
+}
+catch {
+    console.log("Tuedeptrai");
+}
