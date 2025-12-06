@@ -7,7 +7,7 @@ const app = express();
 const cartRoutes = require('./src/routes/cartRoutes');
 const productsRoutes = require('./src/routes/productRoutes');
 const clientRoutes = require('./src/routes/clientRoute');
-
+const adminRoutes = require('./src/routes/adminRoutes');
 
 
 app.use(cors());
@@ -16,7 +16,7 @@ app.use(express.json());
 app.use('/api/cart', cartRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/client', clientRoutes);
-
+app.use('/api/admin', adminRoutes);
 const PORT = 8080;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
