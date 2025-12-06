@@ -12,6 +12,14 @@ const cartApi = {
     },
     deleteCartItem: (cartItemId) => {
         return axiosClient.delete(`/cart/remove/${cartItemId}`);
+    },
+
+    getCoupon: (storeId) => {
+        return axiosClient.get(`/cart/coupon/${storeId}`);
+    },
+
+    createOrder: (data) => {
+        return axiosClient.post('/cart/createOrder', data);
     }
 };
 

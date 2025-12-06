@@ -58,7 +58,7 @@
 //       <Navbar cartCount={cartCount} />
 
 //       <main className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
-        
+
 //         <div className="lg:col-span-2">
 //           <h1 className="text-3xl font-bold mb-8">
 //             Shopping Cart ({items.length} items)
@@ -94,19 +94,20 @@ import Navbar from "../components/cartpage/Navbar";
 import CartItem from "../components/cartpage/CartItem";
 import OrderSummary from "../components/cartpage/OrderSummary";
 import Footer from "../components/cartpage/Footer";
-import cartApi from "../services/cartApi"; 
+import cartApi from "../services/cartApi";
 
 // --- CẤU HÌNH GIẢ LẬP ---
 // Trong thực tế, ID này lấy từ User đăng nhập. 
 // Theo data mẫu của bạn: UserID 21 có CartID = 1.
-const CART_ID = 1; 
+const CART_ID = 1;
 const STORE_ID = 1; // Giả sử đang mua tại Store 1
 
 export default function CartPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [couponApplied, setCouponApplied] = useState(false);
-  
+  const [couponDetails, setCouponDetails] = useState(null);
+
   // State cho Demo Insert
   const [newProductId, setNewProductId] = useState("");
 
@@ -194,17 +195,57 @@ export default function CartPage() {
   // --- TÍNH TOÁN ---
   const cartCount = items.reduce((count, item) => count + item.quantity, 0);
   const subtotalRaw = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const subtotal = couponApplied ? subtotalRaw * 0.9 : subtotalRaw; 
+  const subtotal = couponApplied ? subtotalRaw * 0.9 : subtotalRaw;
   const shipping = items.length > 0 ? 5 : 0; // Phí ship cứng $5
   const tax = subtotal * 0.065; // Thuế 6.5%
   const total = subtotal + shipping + tax;
 
-  const applyCoupon = (code) => {
-    if (code.trim().toLowerCase() === "coupon") {
-      setCouponApplied(true);
-      return true;
+  const applyCoupon = async (code) => {
+    try {
+      const response = await cartApi.getCoupon(STORE_ID);
+      const coupons = response.data;
+      console.log(response)
+      const matched = coupons.find(c => c.Name.trim().toLowerCase() === code.trim().toLowerCase());
+      if (matched) {
+        const now = new Date();
+        const expiry = new Date(matched.ExpiryDate);
+        if (now > expiry) {
+          alert("Mã giảm giá đã hết hạn.");
+          return { success: false };
+        }
+        const minRequired = Number(matched.MinimumPriceRequired);
+        if (subtotalRaw < minRequired) {
+          alert(`Đơn hàng tối thiểu để áp dụng mã này là $${minRequired.toFixed(2)}`);
+          return { success: false };
+        }
+        setCouponApplied(true);
+        setCouponDetails({
+          name: matched.Name,
+          description: matched.Description,
+          discountValue: matched.DiscountValue,
+          couponAmount: matched.CouponAmount
+        });
+        return { success: true };
+      }
+      return { success: false };
+    } catch (error) {
+      console.error("Error applying coupon:", error);
+      return { success: false };
     }
-    return false;
+  };
+
+  const handleCheckout = async (cartId, storeId, paymentMethod) => {
+    try {
+      await cartApi.createOrder({
+        cartId: cartId,
+        storeId: storeId,
+        paymentMethod: paymentMethod,
+        totalAmount: total
+      });
+    } catch (error) {
+      console.error("Error creating order:", error);
+      throw error;
+    }
   };
 
   if (loading) return <div className="p-10 text-center font-bold text-lg">Đang tải dữ liệu từ Database...</div>;
@@ -214,7 +255,7 @@ export default function CartPage() {
       <Navbar cartCount={cartCount} />
 
       <main className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
-        
+
         <div className="lg:col-span-2">
           <h1 className="text-3xl font-bold mb-8">
             Shopping Cart ({items.length} items)
@@ -227,14 +268,14 @@ export default function CartPage() {
               <p className="text-xs text-blue-600 mt-1">Nhập ID sản phẩm (1-10) để test Insert vào bảng Cart_Item</p>
             </div>
             <div className="flex gap-2">
-              <input 
-                type="number" 
-                placeholder="Product ID (e.g., 1)" 
+              <input
+                type="number"
+                placeholder="Product ID (e.g., 1)"
                 className="border border-gray-300 p-2 rounded-lg text-sm w-32 focus:outline-none focus:border-blue-500"
                 value={newProductId}
                 onChange={(e) => setNewProductId(e.target.value)}
               />
-              <button 
+              <button
                 onClick={handleQuickAdd}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition"
               >
@@ -245,9 +286,9 @@ export default function CartPage() {
           {/* =========================================== */}
 
           {items.length === 0 ? (
-             <div className="text-center py-10 bg-white rounded-2xl shadow-sm">
-                <p className="text-gray-500">Giỏ hàng trống.</p>
-             </div>
+            <div className="text-center py-10 bg-white rounded-2xl shadow-sm">
+              <p className="text-gray-500">Giỏ hàng trống.</p>
+            </div>
           ) : (
             items.map((item) => (
               <CartItem
@@ -267,6 +308,10 @@ export default function CartPage() {
           tax={tax}
           total={total}
           applyCoupon={applyCoupon}
+          couponDetails={couponDetails}
+          cartId={CART_ID}
+          storeId={STORE_ID}
+          onCheckout={handleCheckout}
         />
       </main>
 

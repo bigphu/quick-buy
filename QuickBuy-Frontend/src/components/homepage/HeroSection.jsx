@@ -1,4 +1,8 @@
+import { useNavigate } from 'react-router-dom';
+
 export default function HeroSection() {
+    const navigate = useNavigate();
+
     return (
         // Wrapper to center the hero card on the page
         <div>
@@ -25,7 +29,10 @@ export default function HeroSection() {
                         </p>
 
                     </div>
-                    <button className="bg-[#137FEC] hover:bg-blue-600 text-white font-bold text-base px-6 h-12 rounded-full transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:-translate-y-0.5">
+                    <button
+                        onClick={() => navigate('/')}
+                        className="bg-[#137FEC] hover:bg-blue-600 text-white font-bold text-base px-6 h-12 rounded-full transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                    >
                         Shop now
                     </button>
 
@@ -43,7 +50,10 @@ export default function HeroSection() {
                                 Save big on TVs, laptops, and more.
                             </p>
                         </div>
-                        <button className="bg-[#0F875F] hover:bg-[#0b6b4b] text-white font-bold text-sm px-6 py-2.5 rounded-full transition-colors">
+                        <button
+                            onClick={() => navigate('/')}
+                            className="bg-[#0F875F] hover:bg-[#0b6b4b] text-white font-bold text-sm px-6 py-2.5 rounded-full transition-colors"
+                        >
                             Shop now
                         </button>
                     </div>
@@ -71,6 +81,6 @@ export default function HeroSection() {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

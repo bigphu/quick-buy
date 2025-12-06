@@ -20,7 +20,7 @@
 //             LEFT JOIN Category c ON p.CategoryID = c.CategoryID
 //             WHERE ci.CartID = ?
 //         `, [cartId]);
-        
+
 //         res.status(200).json(rows);
 //     } catch (error) {
 //         console.error(error);
@@ -74,7 +74,7 @@ const db = require('../config/db');
 exports.getCartDetails = async (req, res) => {
     try {
         const { cartId } = req.params;
-        
+
         // SỬA LẠI CÂU SQL:
         // 1. Join thêm bảng Belongs_To để lấy Category
         // 2. Bỏ p.Product_Image vì bảng Product không có cột này
@@ -93,7 +93,7 @@ exports.getCartDetails = async (req, res) => {
             LEFT JOIN Category c ON bt.CategoryID = c.CategoryID
             WHERE ci.CartID = ?
         `, [cartId]);
-        
+
         res.status(200).json(rows);
     } catch (error) {
         console.error("Lỗi lấy giỏ hàng:", error); // In lỗi ra terminal để dễ debug
@@ -120,11 +120,14 @@ exports.addToCart = async (req, res) => {
 exports.updateCartItem = async (req, res) => {
     try {
         const { cartItemId, newQuantity, storeId } = req.body;
-        await db.execute('CALL sp_UpdateCartItem_BOPIS(?, ?, ?)', [
+        await db.execute('CALL sp_UpdateCartItem(?, ?, ?)', [
             cartItemId, newQuantity, storeId
         ]);
         res.status(200).json({ message: "Cập nhật giỏ hàng thành công!" });
     } catch (error) {
+        if (error.sqlMessage === 'Error: Requested quantity exceeds current store stock.') {
+            return res.status(400).json({ message: "Số lượng yêu cầu vượt quá tồn kho hiện tại." });
+        }
         res.status(400).json({ message: error.sqlMessage || "Lỗi cập nhật" });
     }
 };
@@ -137,5 +140,39 @@ exports.deleteCartItem = async (req, res) => {
         res.status(200).json({ message: "Xóa sản phẩm thành công!" });
     } catch (error) {
         res.status(400).json({ message: error.sqlMessage || "Lỗi xóa sản phẩm" });
+    }
+};
+
+// 4. VALIDATE COUPON
+exports.getCoupon = async (req, res) => {
+    try {
+        const { storeId } = req.params;
+        const [rows] = await db.execute(`SELECT
+            Name, Description, DiscountValue, CouponAmount,
+            MinimumPriceRequired, CreatedDate, ExpiryDate,
+            StoreID, CustomerID, OrderID
+        FROM Coupon
+        WHERE StoreID = ?
+            
+            `, [storeId]);
+        // Implement logic to validate coupon based on storeId
+        // This is a placeholder response
+        res.status(200).json(rows, { message: "Lấy coupon thành công!" });
+    } catch (error) {
+        res.status(400).json({ message: error.sqlMessage || "Lỗi fetch coupon" });
+    }
+};
+
+exports.createOrder = async (req, res) => {
+    try {
+        const { cartId, storeId, paymentMethod } = req.body;
+        // Gọi Stored Procedure để tạo đơn hàng
+        await db.execute('CALL sp_CreateOrder(?, ?, ?)', [
+            cartId, storeId, paymentMethod,
+        ]);
+        res.status(200).json({ message: "Tạo đơn hàng thành công!" });
+    }
+    catch (error) {
+        res.status(400).json({ message: error.sqlMessage || "Lỗi tạo đơn hàng" });
     }
 };

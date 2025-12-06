@@ -15,4 +15,8 @@ router.put('/update', cartController.updateCartItem);
 // DELETE: Xóa (Delete)
 router.delete('/remove/:cartItemId', cartController.deleteCartItem);
 
+router.get('/coupon/:storeId', cartController.getCoupon);
+
+router.post('/createOrder', cartController.createOrder);
+
 module.exports = router;
