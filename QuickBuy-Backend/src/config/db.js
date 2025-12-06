@@ -11,9 +11,5 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
-console.log('Khong chay duoc');
+
 module.exports = pool;
-}
-catch {
-    console.log("Tuedeptrai");
-}

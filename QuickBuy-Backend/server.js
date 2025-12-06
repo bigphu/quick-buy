@@ -1,19 +1,21 @@
 const express = require('express');
 const cors = require('cors');
-// require('dotenv').config(); // Nếu bạn có dùng biến môi trường
+require('dotenv').config(); // Nếu bạn có dùng biến môi trường
 
 const app = express();
 // SỬA ĐƯỜNG DẪN TẠI ĐÂY:
-// const cartRoutes = require('./src/routes/cartRoutes');
+const cartRoutes = require('./src/routes/cartRoutes');
+const productsRoutes = require('./src/routes/productRoutes');
+const clientRoutes = require('./src/routes/clientRoute');
 const adminRoutes = require('./src/routes/adminRoutes');
+
+
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-    res.json({ message: 'QuickBuy API is running!' });
-});
-
-// app.use('/api/cart', cartRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/products', productsRoutes);
+app.use('/api/client', clientRoutes);
 app.use('/api/admin', adminRoutes);
 const PORT = 8080;
 app.listen(PORT, () => {
