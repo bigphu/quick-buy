@@ -163,12 +163,52 @@ exports.getCoupon = async (req, res) => {
     }
 };
 
+// 5. VALIDATE COUPON BY CODE - Check if coupon exists in other stores
+exports.validateCouponByCode = async (req, res) => {
+    try {
+        const { code, storeId } = req.params;
+
+        // Check if coupon exists in ANY store
+        const [allCoupons] = await db.execute(`
+            SELECT Name, StoreID, ExpiryDate 
+            FROM Coupon 
+            WHERE LOWER(TRIM(Name)) = LOWER(TRIM(?))
+        `, [code]);
+
+        if (allCoupons.length === 0) {
+            return res.status(404).json({
+                exists: false,
+                message: "Mã giảm giá không tồn tại."
+            });
+        }
+
+        // Coupon exists, check if it's for this store
+        const couponForStore = allCoupons.find(c => c.StoreID === parseInt(storeId));
+
+        if (!couponForStore) {
+            return res.status(400).json({
+                exists: true,
+                validForStore: false,
+                message: "Mã giảm giá này không áp dụng cho cửa hàng này."
+            });
+        }
+
+        res.status(200).json({
+            exists: true,
+            validForStore: true,
+            message: "Coupon hợp lệ cho store này."
+        });
+    } catch (error) {
+        res.status(400).json({ message: error.sqlMessage || "Lỗi validate coupon" });
+    }
+};
+
 exports.createOrder = async (req, res) => {
     try {
-        const { cartId, storeId, paymentMethod } = req.body;
+        const { cartId, storeId, paymentMethod, totalAmount } = req.body;
         // Gọi Stored Procedure để tạo đơn hàng
-        await db.execute('CALL sp_CreateOrder(?, ?, ?)', [
-            cartId, storeId, paymentMethod,
+        await db.execute('CALL sp_CreateOrder(?, ?, ?, ?)', [
+            cartId, storeId, paymentMethod, totalAmount
         ]);
         res.status(200).json({ message: "Tạo đơn hàng thành công!" });
     }

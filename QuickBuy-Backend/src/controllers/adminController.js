@@ -14,7 +14,7 @@ exports.tue = async (req, res) => {
         if (results.length === 0) {
             return res.status(404).json({ message: 'User not found' });
         }
-        const [pointsResult] = await db.query('SELECT fn_calculate_loyaltypoints(?)', [userId]);
+        const [pointsResult] = await db.query('SELECT fn_calculate_loyaltypoints(?) as points', [userId]);
         results[0].points = pointsResult[0].points;
         // console.log(results[0]);
         res.json(results[0]);
@@ -49,6 +49,36 @@ exports.tue2 = async (req, res) => {
         res.json(results[0]);
     } catch (error) {
         console.error('Error fetching product:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Get all customers for dropdown selector
+exports.getAllCustomers = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT CustomerID as id, CONCAT(FirstName, ' ', LastName) as name, Email
+            FROM Customer
+            ORDER BY CustomerID
+        `);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching customers:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// Get all stores for dropdown selector
+exports.getAllStores = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+            SELECT StoreID as id, CONCAT(Name, ' - ', City) as name, City
+            FROM Store
+            ORDER BY StoreID
+        `);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error fetching stores:', error);
         res.status(500).json({ message: 'Server error' });
     }
 };

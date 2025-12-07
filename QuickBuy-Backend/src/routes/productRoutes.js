@@ -5,6 +5,7 @@ const ProductsRoutes = express.Router();
 
 // Định nghĩa các đường dẫn con cho /api/products
 ProductsRoutes.get("/categories", ProductsController.getAllCategories);
+ProductsRoutes.get("/store/:storeId", ProductsController.getAllByStore);
 ProductsRoutes.get("/top-rated/:category", ProductsController.getTopRated);
 ProductsRoutes.get("/:productId/low-stock", ProductsController.getLowStock);
 

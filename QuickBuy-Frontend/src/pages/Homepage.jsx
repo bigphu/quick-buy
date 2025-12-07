@@ -87,47 +87,69 @@ import Layout from '../components/homepage/Layout';
 import HeroSection from '../components/homepage/HeroSection';
 import ContentSection from '../components/homepage/ContentSection';
 import axiosClient from '../services/axiosClient'; // Dùng axiosClient đã config port 8080
+import UserStoreSelector from '../components/common/UserStoreSelector';
+import { getStoreId } from '../constants';
 
 export default function Homepage() {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
-  const [activeCategory, setActiveCategory] = useState('');
+  const [activeCategory, setActiveCategory] = useState('All Products');
+  const [storeId, setStoreId] = useState(getStoreId());
   const [loading, setLoading] = useState(false);
 
-  // 1. Fetch Categories
+  // 1. Fetch Categories & All Products on Mount
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        // Gọi API Backend (cổng 8080)
-
         const response = await axiosClient.get('/products/categories');
-        const responseData = response.data; // axios trả về data trong .data
+        const responseData = response.data;
         console.log(responseData);
 
         const data = responseData.data;
         if (data && data.length > 0) {
           setCategories(data);
-          // Mặc định load category đầu tiên
-          fetchTopRated(data[0].CategoryName);
         }
       } catch (err) {
         console.error("Failed to fetch categories", err);
       }
     };
     fetchCategories();
+    // Load all products for this store by default
+    fetchAllProducts();
   }, []);
 
-  // 2. Fetch Top Rated Products
+  // Handle store change from selector
+  const handleSelectorChange = () => {
+    setStoreId(getStoreId());
+  };
+
+  // Fetch ALL products for current store
+  const fetchAllProducts = async () => {
+    setLoading(true);
+    setActiveCategory('All Products');
+    try {
+      const currentStoreId = getStoreId();
+      const response = await axiosClient.get(`/products/store/${currentStoreId}`);
+      const responseData = response.data;
+      setProducts(responseData.data || []);
+    } catch (err) {
+      console.error("Failed to fetch all products", err);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch Top Rated Products by category
   const fetchTopRated = async (categoryName) => {
     setLoading(true);
     setActiveCategory(categoryName);
     try {
-      // Gọi API Procedure Top Rated
+      const currentStoreId = getStoreId();
       const response = await axiosClient.get(`/products/top-rated/${categoryName}`, {
-        params: { minRating: 0 } // Tham số truy vấn
+        params: { minRating: 0, storeId: currentStoreId }
       });
       const responseData = response.data;
-
       setProducts(responseData.data || []);
     } catch (err) {
       console.error("Failed to fetch products", err);
@@ -137,14 +159,22 @@ export default function Homepage() {
     }
   };
 
+  // Refetch when store changes
+  useEffect(() => {
+    fetchAllProducts();
+  }, [storeId]);
+
   return (
-    <Layout categories={categories} onCategorySelect={fetchTopRated}>
-      <HeroSection />
-      <ContentSection
-        products={products}
-        currentCategory={activeCategory}
-        isLoading={loading}
-      />
-    </Layout>
+    <>
+      <UserStoreSelector onChangeCallback={handleSelectorChange} />
+      <Layout categories={categories} onCategorySelect={fetchTopRated}>
+        <HeroSection />
+        <ContentSection
+          products={products}
+          currentCategory={activeCategory}
+          isLoading={loading}
+        />
+      </Layout>
+    </>
   );
 }

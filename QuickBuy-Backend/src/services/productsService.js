@@ -8,7 +8,7 @@ const ProductsService = {
         // 1. Business Logic Validation
         // Ensure threshold is a number and is non-negative
         const stockThreshold = parseInt(threshold, 10);
-        
+
         if (isNaN(stockThreshold) || stockThreshold < 0) {
             throw new Error("VALIDATION_ERROR: Stock threshold must be a non-negative integer.");
         }
@@ -24,7 +24,7 @@ const ProductsService = {
     /**
      * Validates inputs and fetches top rated products
      */
-    getTopRated: async (category, minRating) => {
+    getTopRated: async (category, minRating, storeId) => {
         // 1. Business Logic Validation
         // Ensure rating is between 0 and 5
         const rating = parseFloat(minRating);
@@ -34,7 +34,17 @@ const ProductsService = {
         }
 
         // 2. Call Data Access Layer
-        return await ProductsModel.getTopRated(category, rating);
+        return await ProductsModel.getTopRated(category, rating, storeId);
+    },
+
+    /**
+     * Fetches all products for a specific store
+     */
+    getAllByStore: async (storeId) => {
+        if (!storeId) {
+            throw new Error("VALIDATION_ERROR: Store ID is required.");
+        }
+        return await ProductsModel.getAllByStore(storeId);
     }
 };
 

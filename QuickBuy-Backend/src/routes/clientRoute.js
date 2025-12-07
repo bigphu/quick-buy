@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const clientController = require('../controllers/clientController');
 
+// GET: Get customer profile
+router.get('/:clientId/profile', clientController.getCustomerProfile);
+
 // GET: Get client loyalty points
 router.get('/:clientId/loyalty-points', clientController.getloyaltyPoints);
 

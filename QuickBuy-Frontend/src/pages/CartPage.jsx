@@ -95,14 +95,12 @@ import CartItem from "../components/cartpage/CartItem";
 import OrderSummary from "../components/cartpage/OrderSummary";
 import Footer from "../components/cartpage/Footer";
 import cartApi from "../services/cartApi";
-
-// --- CẤU HÌNH GIẢ LẬP ---
-// Trong thực tế, ID này lấy từ User đăng nhập. 
-// Theo data mẫu của bạn: UserID 21 có CartID = 1.
-const CART_ID = 1;
-const STORE_ID = 1; // Giả sử đang mua tại Store 1
+import UserStoreSelector from "../components/common/UserStoreSelector";
+import { getCartId, getStoreId } from "../constants";
 
 export default function CartPage() {
+  const [cartId, setCartId] = useState(getCartId());
+  const [storeId, setStoreId] = useState(getStoreId());
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [couponApplied, setCouponApplied] = useState(false);
@@ -111,10 +109,19 @@ export default function CartPage() {
   // State cho Demo Insert
   const [newProductId, setNewProductId] = useState("");
 
+  // Handle selector change - reload page data
+  const handleSelectorChange = () => {
+    setCartId(getCartId());
+    setStoreId(getStoreId());
+    setCouponApplied(false);
+    setCouponDetails(null);
+    setLoading(true);
+  };
+
   // --- 1. LẤY DỮ LIỆU TỪ DB ---
   const fetchCart = async () => {
     try {
-      const res = await cartApi.getCart(CART_ID);
+      const res = await cartApi.getCart(cartId);
       // Map field từ DB (PascalCase) sang Frontend
       const mappedItems = res.data.map(item => ({
         id: item.CartItemID,         // Khóa chính để xóa/sửa
@@ -129,6 +136,7 @@ export default function CartPage() {
       setItems(mappedItems);
     } catch (err) {
       console.error("Lỗi tải giỏ hàng:", err);
+      setItems([]);
     } finally {
       setLoading(false);
     }
@@ -136,7 +144,7 @@ export default function CartPage() {
 
   useEffect(() => {
     fetchCart();
-  }, []);
+  }, [cartId, storeId]);
 
   // --- 2. UPDATE LOGIC (Gọi SP) ---
   const handleUpdate = async (cartItemId, newQty) => {
@@ -144,7 +152,7 @@ export default function CartPage() {
       await cartApi.updateCartItem({
         cartItemId: cartItemId,
         newQuantity: newQty,
-        storeId: STORE_ID
+        storeId: storeId
       });
       fetchCart(); // Load lại để cập nhật giá/số lượng chuẩn từ DB
     } catch (err) {
@@ -179,10 +187,10 @@ export default function CartPage() {
     if (!newProductId) return alert("Vui lòng nhập ID sản phẩm");
     try {
       await cartApi.addToCart({
-        cartId: CART_ID,
+        cartId: cartId,
         productId: parseInt(newProductId),
         quantity: 1,
-        storeId: STORE_ID
+        storeId: storeId
       });
       setNewProductId("");
       alert("Thêm thành công!");
@@ -196,13 +204,27 @@ export default function CartPage() {
   const cartCount = items.reduce((count, item) => count + item.quantity, 0);
   const subtotalRaw = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const subtotal = couponApplied ? subtotalRaw * 0.9 : subtotalRaw;
-  const shipping = items.length > 0 ? 5 : 0; // Phí ship cứng $5
   const tax = subtotal * 0.065; // Thuế 6.5%
-  const total = subtotal + shipping + tax;
+  const total = subtotal + tax;
 
   const applyCoupon = async (code) => {
     try {
-      const response = await cartApi.getCoupon(STORE_ID);
+      // Kiểm tra coupon có tồn tại và có áp dụng cho store này không
+      try {
+        const validateRes = await cartApi.validateCouponByCode(code, storeId);
+        // Nếu không throw error thì coupon hợp lệ cho store này
+      } catch (validateErr) {
+        if (validateErr.response?.status === 404) {
+          alert("Mã giảm giá không tồn tại.");
+          return { success: false };
+        }
+        if (validateErr.response?.status === 400) {
+          alert(validateErr.response?.data?.message || "Mã giảm giá này không áp dụng cho cửa hàng này.");
+          return { success: false };
+        }
+      }
+
+      const response = await cartApi.getCoupon(storeId);
       const coupons = response.data;
       console.log(response)
       const matched = coupons.find(c => c.Name.trim().toLowerCase() === code.trim().toLowerCase());
@@ -252,6 +274,7 @@ export default function CartPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
+      <UserStoreSelector onChangeCallback={handleSelectorChange} />
       <Navbar cartCount={cartCount} />
 
       <main className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -262,27 +285,7 @@ export default function CartPage() {
           </h1>
 
           {/* === DEMO INSERT SECTION (Yêu cầu 3.1) === */}
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl mb-6 flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-blue-800 text-sm">🛠 Demo Requirement 3.1: Insert</h3>
-              <p className="text-xs text-blue-600 mt-1">Nhập ID sản phẩm (1-10) để test Insert vào bảng Cart_Item</p>
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                placeholder="Product ID (e.g., 1)"
-                className="border border-gray-300 p-2 rounded-lg text-sm w-32 focus:outline-none focus:border-blue-500"
-                value={newProductId}
-                onChange={(e) => setNewProductId(e.target.value)}
-              />
-              <button
-                onClick={handleQuickAdd}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700 transition"
-              >
-                Add
-              </button>
-            </div>
-          </div>
+
           {/* =========================================== */}
 
           {items.length === 0 ? (
@@ -304,13 +307,12 @@ export default function CartPage() {
 
         <OrderSummary
           subtotal={subtotal}
-          shipping={shipping}
           tax={tax}
           total={total}
           applyCoupon={applyCoupon}
           couponDetails={couponDetails}
-          cartId={CART_ID}
-          storeId={STORE_ID}
+          cartId={cartId}
+          storeId={storeId}
           onCheckout={handleCheckout}
         />
       </main>

@@ -2,6 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../services/axiosClient'; // Dùng axiosClient đã config port 8080
+import cartApi from '../services/cartApi';
+import UserStoreSelector from '../components/common/UserStoreSelector';
+import { getCartId, getCustomerId, getStoreId } from '../constants';
 
 import {
   LayoutDashboard,
@@ -22,51 +25,8 @@ import {
   Hammer
 } from 'lucide-react';
 
-async function getLoyaltyPoints() {
-  try {
-    const response = await axiosClient.get('/client/1/loyalty-points');
-    return response.data.loyaltyPoints;
-  } catch (error) {
-    console.error("Failed to fetch loyalty points", error);
-  }
-  return null;
-}
-
-async function getOrderHistory() {
-  try {
-    const response = await axiosClient.get('/client/1/order-history');
-    const responseData = response.data;
-    let Orders = [];
-    for (let order of responseData.orders) {
-      Orders.push({
-        id: `#${order.OrderID.toString().padStart(6, '0')}`,
-        date: new Date(order.OrderDate).toLocaleDateString(),
-        status: order.Status,
-        total: Number(order.TotalPrice) || 0,
-        items: [] // Empty for now, can be populated with order details if needed
-      });
-    }
-    console.log(Orders);
-    return Orders;
-  } catch (error) {
-    console.error("Failed to fetch order history", error);
-  }
-  return [];
-}
-
-// Mock Data based on Assignment Requirements
-const USER_INFO = {
-  name: "Bùi Viết Anh Quân",
-  email: "quan.buivietanh@hcmut.edu.vn",
-  avatar: "https://i.pravatar.cc/150?img=11",
-  memberTier: "Gold Member",
-  points: await getLoyaltyPoints() || 3200,
-  nextTierPoints: 5000
-};
-
-const ORDERS = await getOrderHistory() || [];
 // Component: Header
-const Header = () => {
+const Header = ({ cartCount }) => {
   const navigate = useNavigate();
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -120,7 +80,11 @@ const Header = () => {
           >
             <div className="relative">
               <ShoppingCart className="w-6 h-6 mb-1" />
-              <span className="absolute -top-1 -right-2 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">2</span>
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-2 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {cartCount}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -135,7 +99,7 @@ const Header = () => {
 };
 
 // Component: Sidebar
-const Sidebar = ({ activeTab, setActiveTab }) => {
+const Sidebar = ({ activeTab, setActiveTab, userInfo }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'orders', label: 'Order History', icon: Package },
@@ -148,9 +112,9 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="p-6 border-b border-gray-100 flex flex-col items-center text-center">
-        <img src={USER_INFO.avatar} alt="User Avatar" className="w-20 h-20 rounded-full border-4 border-blue-50 mb-3" />
-        <h3 className="font-bold text-gray-800 text-lg">{USER_INFO.name}</h3>
-        <p className="text-gray-500 text-sm">{USER_INFO.email}</p>
+        <img src={`https://ui-avatars.com/api/?name=${userInfo.name}&background=3b82f6&color=fff&size=150`} alt="User Avatar" className="w-20 h-20 rounded-full border-4 border-blue-50 mb-3" />
+        <h3 className="font-bold text-gray-800 text-lg">{userInfo.name}</h3>
+        <p className="text-gray-500 text-sm">{userInfo.email}</p>
       </div>
       <nav className="p-3">
         {menuItems.map(item => {
@@ -179,8 +143,16 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
 };
 
 // Component: Loyalty Card
-const LoyaltyCard = () => {
-  const progress = (USER_INFO.points / USER_INFO.nextTierPoints) * 100;
+const LoyaltyCard = ({ userInfo }) => {
+  const nextTierPoints = 5000;
+  const progress = (userInfo.points / nextTierPoints) * 100;
+
+  const getMemberTier = (points) => {
+    if (points >= 5000) return 'Platinum Member';
+    if (points >= 2000) return 'Gold Member';
+    if (points >= 500) return 'Silver Member';
+    return 'Bronze Member';
+  };
 
   return (
     <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-6 md:p-8 text-white shadow-lg mb-8 relative overflow-hidden">
@@ -194,25 +166,25 @@ const LoyaltyCard = () => {
             <Crown className="w-5 h-5" />
             <span className="font-medium tracking-wide text-sm uppercase">Member Status</span>
           </div>
-          <h2 className="text-3xl font-bold mb-1">{USER_INFO.memberTier}</h2>
+          <h2 className="text-3xl font-bold mb-1">{getMemberTier(userInfo.points)}</h2>
           <p className="text-blue-100 text-sm">Join date: Jan 2024</p>
         </div>
 
         <div className="w-full md:w-1/2 bg-white/20 backdrop-blur-sm rounded-xl p-4 border border-white/10">
           <div className="flex justify-between items-end mb-2">
             <div>
-              <span className="text-3xl font-bold">{USER_INFO.points.toLocaleString()}</span>
+              <span className="text-3xl font-bold">{userInfo.points.toLocaleString()}</span>
               <span className="text-sm ml-1 opacity-80">pts</span>
             </div>
             <span className="text-xs font-medium bg-white text-blue-600 px-2 py-1 rounded">
-              {USER_INFO.nextTierPoints - USER_INFO.points} pts to Platinum
+              {Math.max(0, nextTierPoints - userInfo.points)} pts to Platinum
             </span>
           </div>
           {/* Progress Bar */}
           <div className="w-full bg-black/20 rounded-full h-2.5 mb-2">
             <div
               className="bg-yellow-400 h-2.5 rounded-full transition-all duration-1000 ease-out"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${Math.min(100, progress)}%` }}
             ></div>
           </div>
           <div className="text-xs text-blue-100 text-right">
@@ -290,11 +262,76 @@ const OrderCard = ({ order }) => {
 
 const AccountPage = () => {
   const [activeTab, setActiveTab] = useState('orders');
+  const [cartCount, setCartCount] = useState(0);
+  const [customerId, setCustomerId] = useState(getCustomerId());
+  const [cartId, setCartId] = useState(getCartId());
+  const [userInfo, setUserInfo] = useState({
+    name: '',
+    email: '',
+    points: 0
+  });
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Handle selector change
+  const handleSelectorChange = () => {
+    setCustomerId(getCustomerId());
+    setCartId(getCartId());
+    setLoading(true);
+  };
+
+  const fetchData = async () => {
+    try {
+      // Fetch cart count
+      const cartRes = await cartApi.getCart(cartId);
+      const totalItems = cartRes.data.reduce((count, item) => count + item.Quantity, 0);
+      setCartCount(totalItems);
+
+      // Fetch customer profile
+      const profileRes = await axiosClient.get(`/client/${customerId}/profile`);
+      const profile = profileRes.data;
+      setUserInfo({
+        name: `${profile.FirstName} ${profile.LastName}`,
+        email: profile.Email,
+        points: profile.LoyaltyPoints || 0
+      });
+
+      // Fetch order history
+      const ordersRes = await axiosClient.get(`/client/${customerId}/order-history`);
+      const ordersData = ordersRes.data.orders.map(order => ({
+        id: `#${order.OrderID.toString().padStart(6, '0')}`,
+        date: new Date(order.OrderDate).toLocaleDateString(),
+        status: order.Status,
+        total: Number(order.TotalPrice) || 0,
+        items: []
+      }));
+      setOrders(ordersData);
+    } catch (error) {
+      console.error("Failed to fetch data", error);
+      setUserInfo({ name: 'Unknown', email: '', points: 0 });
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [customerId, cartId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-lg font-semibold text-gray-600">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen pb-12 bg-gray-50">
-      <Header />
+      <UserStoreSelector onChangeCallback={handleSelectorChange} />
+      <Header cartCount={cartCount} />
 
       <div className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
@@ -310,7 +347,7 @@ const AccountPage = () => {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Left Sidebar */}
           <aside className="w-full lg:w-1/4">
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} userInfo={userInfo} />
           </aside>
 
           {/* Main Content */}
@@ -321,7 +358,7 @@ const AccountPage = () => {
             </h1>
 
             {/* Always show Loyalty Card on top */}
-            <LoyaltyCard />
+            <LoyaltyCard userInfo={userInfo} />
 
             {/* Content Sections */}
             {activeTab === 'orders' && (
@@ -337,9 +374,16 @@ const AccountPage = () => {
                   </div>
                 </div>
 
-                {ORDERS.map((order, index) => (
-                  <OrderCard key={index} order={order} />
-                ))}
+                {orders.length === 0 ? (
+                  <div className="bg-white p-12 rounded-xl border border-dashed border-gray-300 text-center text-gray-500">
+                    <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No orders found.</p>
+                  </div>
+                ) : (
+                  orders.map((order, index) => (
+                    <OrderCard key={index} order={order} />
+                  ))
+                )}
 
                 <div className="text-center mt-6">
                   <button className="text-blue-600 text-sm font-medium hover:underline">

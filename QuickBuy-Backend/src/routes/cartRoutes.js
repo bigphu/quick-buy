@@ -17,6 +17,8 @@ router.delete('/remove/:cartItemId', cartController.deleteCartItem);
 
 router.get('/coupon/:storeId', cartController.getCoupon);
 
+router.get('/validate-coupon/:code/:storeId', cartController.validateCouponByCode);
+
 router.post('/createOrder', cartController.createOrder);
 
 module.exports = router;
