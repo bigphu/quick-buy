@@ -242,12 +242,12 @@ export default function CartPage() {
           return { success: false };
         }
         setCouponApplied(true);
-        setCouponDetails({
-          name: matched.Name,
-          description: matched.Description,
-          discountValue: matched.DiscountValue,
-          couponAmount: matched.CouponAmount
-        });
+        // setCouponDetails({
+        //   name: matched.Name,
+        //   description: matched.Description,
+        //   discountValue: matched.DiscountValue,
+        //   couponAmount: matched.CouponAmount
+        // });
         return { success: true };
       }
       return { success: false };
