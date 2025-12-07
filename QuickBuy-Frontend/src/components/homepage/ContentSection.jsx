@@ -22,7 +22,7 @@
 //     ];
 
 //     const products = [
-        
+
 //     ];
 
 //     // Handle add to cart
@@ -115,7 +115,7 @@
 // import { Star } from 'lucide-react';
 
 // export default function ContentSection({ products, currentCategory, isLoading }) {
-    
+
 //     // Placeholder image helper if product image is missing from DB
 //     const getProductImage = (img) => {
 //         return img || "https://via.placeholder.com/300?text=No+Image"; 
@@ -123,7 +123,7 @@
 
 //     return (
 //         <div className='w-full max-w-[1216px] mx-auto px-4 py-12 flex flex-col gap-16 min-h-[50vh]'>
-            
+
 //             <section className="flex flex-col gap-6">
 //                 <div className='flex items-center justify-between'>
 //                     <h2 className="text-2xl font-bold text-slate-900">
@@ -194,9 +194,9 @@ const CURRENT_CART_ID = 1;
 const CURRENT_STORE_ID = 1;
 
 export default function ContentSection({ products, currentCategory, isLoading }) {
-    
+
     const getProductImage = (img) => {
-        return img || "https://via.placeholder.com/300?text=No+Image"; 
+        return img || "https://via.placeholder.com/300?text=No+Image";
     };
 
     // --- LOGIC ADD TO CART ---
@@ -206,17 +206,17 @@ export default function ContentSection({ products, currentCategory, isLoading })
             // product.ProductID lấy từ API (do Procedure ở Bước 1 trả về)
             const data = {
                 cartId: CURRENT_CART_ID,
-                productId: product.ProductID, 
-                quantity: 1, 
+                productId: product.ProductID,
+                quantity: 1,
                 storeId: CURRENT_STORE_ID
             };
 
             // Gọi API Backend
             await cartApi.addToCart(data);
-            
+
             // Bắn sự kiện để Header cập nhật số lượng
-            window.dispatchEvent(new Event('cartUpdated')); 
-            
+            window.dispatchEvent(new Event('cartUpdated'));
+
             alert(`Đã thêm "${product.ProductName}" vào giỏ!`);
         } catch (error) {
             console.error(error);
@@ -228,11 +228,15 @@ export default function ContentSection({ products, currentCategory, isLoading })
 
     return (
         <div className='w-full max-w-[1216px] mx-auto px-4 py-12 flex flex-col gap-16 min-h-[50vh]'>
-            
+
             <section className="flex flex-col gap-6">
                 <div className='flex items-center justify-between'>
                     <h2 className="text-2xl font-bold text-slate-900">
-                        {isLoading ? 'Loading...' : `Top Rated in "${currentCategory || 'Category'}"`}
+                        {isLoading ? 'Loading...' :
+                            currentCategory === 'All Products'
+                                ? 'All Products in Store'
+                                : `Top Rated in "${currentCategory || 'Category'}"`
+                        }
                     </h2>
                 </div>
 
@@ -248,14 +252,14 @@ export default function ContentSection({ products, currentCategory, isLoading })
                     <div className='grid grid-cols-1 sm:grid-cols-3 md:grid-cols-5 gap-6'>
                         {products.map((product) => (
                             <div
-                                key={product.ProductID} 
+                                key={product.ProductID}
                                 className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col hover:shadow-lg transition-shadow duration-200"
                             >
                                 <div className="h-40 w-full flex items-center justify-center mb-4 bg-gray-50 rounded-lg">
-                                    <img 
-                                        src={getProductImage(null)} 
-                                        alt={product.ProductName} 
-                                        className="max-h-full max-w-full object-contain mix-blend-multiply" 
+                                    <img
+                                        src={getProductImage(null)}
+                                        alt={product.ProductName}
+                                        className="max-h-full max-w-full object-contain mix-blend-multiply"
                                     />
                                 </div>
                                 <div className="flex flex-col gap-1 flex-1">
@@ -278,7 +282,7 @@ export default function ContentSection({ products, currentCategory, isLoading })
                                 </div>
 
                                 {/* Nút Add to Cart gọi hàm handleAddToCart */}
-                                <button 
+                                <button
                                     onClick={() => handleAddToCart(product)}
                                     className="mt-4 w-full py-2 bg-blue-50 text-blue-600 font-bold text-sm rounded-full hover:bg-blue-100 transition-colors"
                                 >

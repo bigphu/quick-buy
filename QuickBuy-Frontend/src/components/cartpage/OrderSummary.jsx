@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function OrderSummary({ subtotal, shipping, tax, total, applyCoupon, couponDetails, cartId, storeId, onCheckout }) {
+export default function OrderSummary({ subtotal, tax, total, applyCoupon, couponDetails, cartId, storeId, onCheckout }) {
   const [code, setCode] = useState("");
   const [status, setStatus] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("Credit Card");
@@ -44,11 +44,6 @@ export default function OrderSummary({ subtotal, shipping, tax, total, applyCoup
         <div className="flex justify-between">
           <span>Subtotal</span>
           <span>${subtotal.toFixed(2)}</span>
-        </div>
-
-        <div className="flex justify-between">
-          <span>Estimated Shipping</span>
-          <span>${shipping.toFixed(2)}</span>
         </div>
 
         <div className="flex justify-between">
@@ -121,13 +116,6 @@ export default function OrderSummary({ subtotal, shipping, tax, total, applyCoup
         {loading ? "Processing..." : "Proceed to Checkout"}
       </button>
 
-      <div className="flex items-start gap-3 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-xl mt-6">
-        <span className="text-2xl mt-1">🚚</span>
-
-        <span className="text-sm leading-snug">
-          Your order is eligible for <strong>free shipping!</strong>
-        </span>
-      </div>
       <div className="mt-3 flex items-center bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-lg text-sm">
         <span className="mr-2 text-lg">💳</span>
         Shop with confidence. All transactions are secure.

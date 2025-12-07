@@ -18,6 +18,10 @@ const cartApi = {
         return axiosClient.get(`/cart/coupon/${storeId}`);
     },
 
+    validateCouponByCode: (code, storeId) => {
+        return axiosClient.get(`/cart/validate-coupon/${code}/${storeId}`);
+    },
+
     createOrder: (data) => {
         return axiosClient.post('/cart/createOrder', data);
     }
