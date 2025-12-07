@@ -44,6 +44,7 @@ const ProductsModel = {
                     p.ProductID,
                     p.ProductName,
                     p.ProductPrice,
+                    p.PictureUrl,
                     hp.Quantity,
                     COUNT(r.ReviewID) AS TotalReviews,
                     ROUND(AVG(r.Rating), 1) AS AverageRating

@@ -257,7 +257,7 @@ export default function ContentSection({ products, currentCategory, isLoading })
                             >
                                 <div className="h-40 w-full flex items-center justify-center mb-4 bg-gray-50 rounded-lg">
                                     <img
-                                        src={getProductImage(null)}
+                                        src={getProductImage(product.PictureUrl)}
                                         alt={product.ProductName}
                                         className="max-h-full max-w-full object-contain mix-blend-multiply"
                                     />

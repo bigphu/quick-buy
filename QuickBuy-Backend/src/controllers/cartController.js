@@ -86,6 +86,7 @@ exports.getCartDetails = async (req, res) => {
                 p.ProductID, 
                 p.ProductName, 
                 p.ProductPrice, 
+                p.PictureUrl,
                 c.CategoryName 
             FROM Cart_Item ci
             JOIN Product p ON ci.ProductID = p.ProductID

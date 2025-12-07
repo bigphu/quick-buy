@@ -128,10 +128,11 @@ export default function CartPage() {
         productId: item.ProductID,
         name: item.ProductName,
         category: item.CategoryName || "General",
+        image: item.PictureUrl,
         price: parseFloat(item.ProductPrice),
         quantity: item.Quantity,
         // Vì DB không có cột ảnh, ta dùng ảnh placeholder có tên sản phẩm
-        image: `https://placehold.co/200x200?text=${encodeURIComponent(item.ProductName)}`
+        // image: `https://placehold.co/200x200?text=${encodeURIComponent(item.ProductName)}`
       }));
       setItems(mappedItems);
     } catch (err) {
