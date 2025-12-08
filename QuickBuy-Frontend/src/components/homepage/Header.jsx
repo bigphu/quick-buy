@@ -304,30 +304,50 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Search, MapPin, RotateCcw, Heart, User, ShoppingCart, LayoutGrid, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import cartApi from '../../services/cartApi'; // Import API để lấy số lượng
+import { getCartId } from "../../constants";
 
-const CART_ID = 1; // ID giả lập
+// const CART_ID = getCartId(); // ID giả lập
 
 export default function Header({ categories = [], onCategorySelect }) {
     const navigate = useNavigate();
     const [cartCount, setCartCount] = useState(0);
-
-    // --- LOGIC 1: Lấy số lượng giỏ hàng thực tế ---
-    const fetchCartCount = async () => {
+    
+    const fetchCartCount = async (currentCartId) => {
+        if (!currentCartId) return;
         try {
-            const response = await cartApi.getCart(CART_ID);
-            // Tính tổng Quantity của các item trong giỏ
+            const response = await cartApi.getCart(currentCartId);
             const totalItems = response.data.reduce((sum, item) => sum + item.Quantity, 0);
             setCartCount(totalItems);
         } catch (error) {
             console.error("Failed to fetch cart count", error);
+            setCartCount(0); // Reset count on error or new user empty cart
         }
     };
 
     useEffect(() => {
-        fetchCartCount();
-        // Lắng nghe sự kiện khi thêm hàng để cập nhật số ngay lập tức
-        window.addEventListener('cartUpdated', fetchCartCount);
-        return () => window.removeEventListener('cartUpdated', fetchCartCount);
+        // Initial fetch
+        fetchCartCount(getCartId());
+
+        // 2. Handler for when User/Customer changes
+        const handleUserChange = () => {
+            const newId = getCartId(); // Get fresh ID from localStorage/constants
+            fetchCartCount(newId);
+        };
+
+        // 3. Handler for when Cart updates (Add to cart)
+        const handleCartUpdate = () => {
+            fetchCartCount(getCartId());
+        };
+
+        // Add Event Listeners
+        window.addEventListener('customerChanged', handleUserChange); // Listens to UserStoreSelector
+        window.addEventListener('cartUpdated', handleCartUpdate);     // Listens to Add To Cart
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('customerChanged', handleUserChange);
+            window.removeEventListener('cartUpdated', handleCartUpdate);
+        };
     }, []);
 
     // --- LOGIC 2: Xử lý cuộn Category (Scroll) ---

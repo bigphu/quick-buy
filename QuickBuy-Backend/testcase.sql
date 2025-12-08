@@ -539,6 +539,44 @@ END$$
 
 DELIMITER ;
 
+-- =========================================================================
+-- TEST CASES FOR CART ITEM TRIGGERS (Insert, Update, Delete)
+-- =========================================================================
+
+-- Setup Temporary Data for Testing
+INSERT INTO Customer (FirstName, LastName, EncryptedPassword, PhoneNumber, Email, Street, City, Country) 
+VALUES ('Test', 'User', 'Pass123!', '000', 'test@test.com', 'St', 'City', 'Country');
+SET @TestCustID = LAST_INSERT_ID();
+
+INSERT INTO Product (ProductName, ProductPrice, WholesaleCost, ManufacturingDate) 
+VALUES ('TestProduct', 100.00, 50.00, '2024-01-01');
+SET @TestProdID = LAST_INSERT_ID();
+
+INSERT INTO Shopping_Cart (CustomerID) VALUES (@TestCustID);
+SET @TestCartID = LAST_INSERT_ID();
+
+-- TEST CASE 1: Insert item and verify ItemPrice calculation (Before Insert Trigger) 
+-- and Shopping_Cart TotalPrice update (After Insert Trigger)
+SELECT * FROM Shopping_Cart WHERE CartID = @TestCartID;
+INSERT INTO Cart_Item (CartID, ProductID, Quantity) VALUES (@TestCartID, @TestProdID, 2);
+SELECT * FROM Cart_Item WHERE CartID = @TestCartID; -- Expect ItemPrice = 200.00
+SELECT * FROM Shopping_Cart WHERE CartID = @TestCartID; -- Expect TotalPrice = 200.00
+
+-- TEST CASE 2: Update item quantity and verify recalculations (Update Triggers)
+SELECT * FROM Cart_Item WHERE CartID = @TestCartID;
+UPDATE Cart_Item SET Quantity = 5 WHERE CartID = @TestCartID AND ProductID = @TestProdID;
+SELECT * FROM Cart_Item WHERE CartID = @TestCartID; -- Expect ItemPrice = 500.00
+SELECT * FROM Shopping_Cart WHERE CartID = @TestCartID; -- Expect TotalPrice = 500.00
+
+-- TEST CASE 3: Delete item and verify Shopping_Cart update (Delete Trigger)
+DELETE FROM Cart_Item WHERE CartID = @TestCartID;
+SELECT * FROM Shopping_Cart WHERE CartID = @TestCartID; -- Expect TotalPrice = 0.00
+
+-- Cleanup
+DELETE FROM Cart_Item WHERE CartID = @TestCartID;
+DELETE FROM Shopping_Cart WHERE CartID = @TestCartID;
+DELETE FROM Customer WHERE CustomerID = @TestCustID;
+DELETE FROM Product WHERE ProductID = @TestProdID;
 
 
 -- =====================================
@@ -693,6 +731,39 @@ END$$
 
 DELIMITER ;
 
+-- =========================================================================
+-- TEST CASES FOR ORDERED ITEM TRIGGERS
+-- =========================================================================
+
+-- Setup Temporary Data
+INSERT INTO Store (Name, Street, City, Country) VALUES ('TStore', 'St', 'C', 'Co');
+SET @TStoreID = LAST_INSERT_ID();
+INSERT INTO Customer (FirstName, LastName, EncryptedPassword, PhoneNumber, Email, Street, City, Country) 
+VALUES ('T', 'U', 'P!1111aaaaa', '1', 't2@t.com', 'S', 'C', 'Co');
+SET @TCustID = LAST_INSERT_ID();
+INSERT INTO Product (ProductName, ProductPrice, WholesaleCost) VALUES ('P1', 50.00, 20.00);
+SET @TProdID = LAST_INSERT_ID();
+INSERT INTO `Order` (CustomerID, StoreID, Status) VALUES (@TCustID, @TStoreID, 'Pending');
+SET @TOrderID = LAST_INSERT_ID();
+
+-- TEST CASE 1: Insert Ordered Item and check auto-calculation of Price and Order Total
+SELECT * FROM `Order` WHERE OrderID = @TOrderID;
+INSERT INTO Ordered_Item (OrderID, ProductID, Quantity) VALUES (@TOrderID, @TProdID, 3);
+SELECT * FROM Ordered_Item WHERE OrderID = @TOrderID; -- Expect ItemPrice = 150.00
+SELECT * FROM `Order` WHERE OrderID = @TOrderID; -- Expect TotalPrice = 150.00
+
+-- TEST CASE 2: Update Ordered Item and check recalculation
+UPDATE Ordered_Item SET Quantity = 4 WHERE OrderID = @TOrderID AND ProductID = @TProdID;
+SELECT * FROM Ordered_Item WHERE OrderID = @TOrderID; -- Expect ItemPrice = 200.00
+SELECT * FROM `Order` WHERE OrderID = @TOrderID; -- Expect TotalPrice = 200.00
+
+-- Cleanup
+DELETE FROM Ordered_Item WHERE OrderID = @TOrderID;
+DELETE FROM `Order` WHERE OrderID = @TOrderID;
+DELETE FROM Product WHERE ProductID = @TProdID;
+DELETE FROM Customer WHERE CustomerID = @TCustID;
+DELETE FROM Store WHERE StoreID = @TStoreID;
+
 
 -- =====================================
 --          25. PAYMENT TABLE
@@ -841,6 +912,54 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+-- =========================================================================
+-- TEST CASES FOR SEMANTIC CONSTRAINT TRIGGER
+-- =========================================================================
+
+-- Setup Temporary Data
+INSERT INTO Store (Name, Street, City, Country) VALUES ('S1', 'Str', 'Ci', 'Co');
+SET @S1 = LAST_INSERT_ID();
+INSERT INTO Store (Name, Street, City, Country) VALUES ('S2', 'Str', 'Ci', 'Co');
+SET @S2 = LAST_INSERT_ID();
+INSERT INTO Customer (FirstName, LastName, EncryptedPassword, PhoneNumber, Email, Street, City, Country) VALUES ('A','B','P@SSw0rD','1','e@e.com','s','c','c');
+SET @C1 = LAST_INSERT_ID();
+INSERT INTO Product (ProductName, ProductPrice, WholesaleCost) VALUES ('P1', 10, 5);
+SET @P1 = LAST_INSERT_ID();
+-- Has_Product: Store has 10 and 0 quantity
+INSERT INTO Has_Product (StoreID, ProductID, Quantity) VALUES (@S1, @P1, 10); 
+INSERT INTO Has_Product (StoreID, ProductID, Quantity) VALUES (@S2, @P1, 0); 
+
+INSERT INTO `Order` (CustomerID, StoreID, Status, OrderDate) VALUES (@C1, @S1, 'Pending', NOW());
+SET @O1 = LAST_INSERT_ID();
+
+INSERT INTO Ordered_Item (OrderID, ProductID, Quantity) VALUES (@O1, @P1, 5);
+
+UPDATE `Order` 
+SET 
+    StoreID = @S2,
+    Status = 'Completed'
+WHERE OrderID = @O1;
+
+-- TEST CASE 1: Attempt to change status to 'Ready for Pickup' without stock (Should Fail)
+-- Note: This is a failure test. 
+-- Triggers Error 45000 because store S2 doesn't have enough stock to serve order O1
+
+-- TEST CASE 2: Auto-cancel old unpaid order
+-- We simulate an old order date
+UPDATE `Order` SET OrderDate = DATE_SUB(NOW(), INTERVAL 25 HOUR) WHERE OrderID = @O1;
+SELECT Status FROM `Order` WHERE OrderID = @O1; -- Before: Pending
+UPDATE `Order` SET StoreID = @S1 WHERE OrderID = @O1; -- Trigger Update to fire logic
+SELECT Status FROM `Order` WHERE OrderID = @O1; -- After: Cancelled (because >24h and no payment)
+
+-- Cleanup
+DELETE FROM Ordered_Item WHERE OrderID = @O1;
+DELETE FROM `Order` WHERE OrderID = @O1;
+DELETE FROM Has_Product WHERE StoreID = @S1;
+DELETE FROM Has_Product WHERE StoreID = @S2;
+DELETE FROM Product WHERE ProductID = @P1;
+DELETE FROM Customer WHERE CustomerID = @C1;
+DELETE FROM Store WHERE StoreID = @S1;
 
 
 -- -----------------------------------   INSERT DATA    -------------------------------------
@@ -1254,6 +1373,7 @@ INSERT INTO Cart_Item (CartID, ProductID, Quantity, AddedDate) VALUES
 (7, 7, 5, '2025-11-23 10:05:00'),
 (8, 9, 5, '2025-11-23 18:20:00');
 
+
 -- =====================================
 -- 23. ORDER TABLE (10 rows)
 -- =====================================
@@ -1464,9 +1584,26 @@ BEGIN
 
 END //
 
+DELIMITER ;
+
+-- =========================================================================
+-- TEST CASES FOR sp_AddToCart
+-- =========================================================================
+
+-- TEST CASE 1: Add new item to cart (Success)
+SELECT * FROM Cart_Item WHERE CartID = 1; -- Before: Cart 1 has items 1 and 7
+CALL sp_AddToCart(1, 3, 1, 1); -- Add 1x Dell Inspiron (PID 3) to Cart 1. Store 1 has stock.
+SELECT * FROM Cart_Item WHERE CartID = 1; -- After: Should include ProductID 3
+
+-- TEST CASE 2: Add existing item to cart (Success - Update Quantity)
+SELECT * FROM Cart_Item WHERE CartID = 1 AND ProductID = 1; -- Before: Qty 1
+CALL sp_AddToCart(1, 1, 1, 1); -- Add 1 more iPhone 15 (PID 1)
+SELECT * FROM Cart_Item WHERE CartID = 1 AND ProductID = 1; -- After: Qty should be 2
 
 
 -- 2. UPDATE: sp_UpdateCartItem
+
+DELIMITER //
 
 CREATE PROCEDURE sp_UpdateCartItem(
     IN p_CartItemID INT,
@@ -1513,9 +1650,26 @@ BEGIN
 
 END //
 
+DELIMITER ;
+
+-- =========================================================================
+-- TEST CASES FOR sp_UpdateCartItem
+-- =========================================================================
+
+-- TEST CASE 1: Update quantity (Success)
+-- Assume CartItemID 3 is for Cart 2, Product 2 (Quantity 2)
+SELECT * FROM Cart_Item WHERE CartItemID = 3;
+CALL sp_UpdateCartItem(3, 5, 1); -- Update to 5 units. Store 1 has stock (15 units)
+SELECT * FROM Cart_Item WHERE CartItemID = 3; -- After: Quantity 5
+
+-- TEST CASE 2: Update quantity exceeds stock (Fail)
+-- Store 1 has 15 Samsung S24s. Try to set cart quantity to 20.
+CALL sp_UpdateCartItem(3, 20, 1); -- This should raise Error 45000 
 
 
 -- 3. DELETE: sp_DeleteCartItem 
+
+DELIMITER //
 
 CREATE PROCEDURE sp_DeleteCartItem(
     IN p_CartItemID INT
@@ -1539,7 +1693,17 @@ END //
 
 DELIMITER ;
 
+-- =========================================================================
+-- TEST CASES FOR sp_DeleteCartItem
+-- =========================================================================
 
+-- TEST CASE 1: Delete existing item (Success)
+SELECT * FROM Cart_Item WHERE CartItemID = 4; -- Before: Exists
+CALL sp_DeleteCartItem(4); 
+SELECT * FROM Cart_Item WHERE CartItemID = 4; -- After: Empty/Null
+
+-- TEST CASE 2: Delete non-existent item (Fail)
+CALL sp_DeleteCartItem(9999); -- This should raise Error 45000
 
 
 -- -----------------------------------   Task 2.2    -------------------------------------
@@ -1587,6 +1751,24 @@ END $$
 
 DELIMITER ;
 
+-- =========================================================================
+-- TEST CASES FOR COUPON TRIGGERS
+-- =========================================================================
+
+-- TEST CASE 1: Insert Expired Coupon assigned to customer (Should Fail)
+INSERT INTO Coupon (Name, DiscountValue, CreatedDate, ExpiryDate, CustomerID) 
+VALUES ('FAIL', 10, '2025-01-01', '2020-01-01', 1); -- Triggers Error 45000
+
+-- TEST CASE 2: Update Coupon to assign to Order when expired (Should Fail)
+-- Create expired coupon first (unassigned is okay)
+INSERT INTO Coupon (Name, DiscountValue, CreatedDate, ExpiryDate) VALUES ('OLD', 10, '2019-01-01', '2020-01-01');
+SET @CouponID = LAST_INSERT_ID();
+
+-- Try to assign to Order 1
+UPDATE Coupon SET OrderID = 1 WHERE CouponID = @CouponID; -- Triggers Error 45000
+DELETE FROM Coupon WHERE CouponID = @CouponID;
+
+
 -- 2.2.2 đã hiện thực phía trên 
 
 
@@ -1626,6 +1808,21 @@ BEGIN
 END $$
 
 DELIMITER ;
+
+-- =========================================================================
+-- TEST CASES FOR sp_GetLowStockInventory
+-- =========================================================================
+
+-- TEST CASE 1: Check low stock for iPhone 15 (ID 1) in Ho Chi Minh with threshold 30
+-- Store 1 has 20 units (Low)
+SELECT * FROM Has_Product WHERE ProductID = 1 AND StoreID = 1;
+CALL sp_GetLowStockInventory('Ho Chi Minh', 1, 30); 
+
+-- TEST CASE 2: Check low stock for Dell Laptop (ID 3) in Ho Chi Minh with threshold 5
+-- Store 1 has 10 units (Not Low)
+SELECT * FROM Has_Product WHERE ProductID = 3 AND StoreID = 1;
+CALL sp_GetLowStockInventory('Ho Chi Minh', 3, 5); -- Should return empty result
+
 
 -- =============================================================
 -- PROCEDURE 2: Top Rated Products Dashboard
@@ -1667,6 +1864,15 @@ END $$
 
 DELIMITER ;
 
+-- =========================================================================
+-- TEST CASES FOR sp_GetTopRatedProducts
+-- =========================================================================
+
+-- TEST CASE 1: Get top rated Smartphones with rating >= 4
+CALL sp_GetTopRatedProducts('Smartphones', 4, NULL);
+
+-- TEST CASE 2: Get top rated Home Appliances at Store 3
+CALL sp_GetTopRatedProducts('Home Appliances', 3, 3);
 
 
 -- -----------------------------------   Task 2.4    -------------------------------------
@@ -1711,6 +1917,16 @@ BEGIN
     RETURN v_totalpoints;
 END$$
 DELIMITER ;
+
+-- =========================================================================
+-- TEST CASES FOR fn_calculate_loyaltypoints
+-- =========================================================================
+
+-- TEST CASE 1: Calculate points for Customer 1 (Has completed orders)
+SELECT fn_calculate_loyaltypoints(1) AS CalculatedPoints;
+
+-- TEST CASE 2: Calculate points for Customer 7 (Orders are Pending)
+SELECT fn_calculate_loyaltypoints(7) AS CalculatedPoints; -- Expect 0 based on current data logic
 
 
 -- =============================================
@@ -1760,7 +1976,15 @@ BEGIN
 END$$
 DELIMITER ;
 
+-- =========================================================================
+-- TEST CASES FOR fn_getstockstatuslabel
+-- =========================================================================
 
+-- TEST CASE 1: Check status for Product 1 (High stock in Warehouses)
+SELECT fn_getstockstatuslabel(1) AS StockStatus; -- Expect 'In Stock'
+
+-- TEST CASE 2: Check status for a Product with 0 stock (if any) or imaginary product
+SELECT fn_getstockstatuslabel(9999) AS StockStatus; -- Expect 'Product not found'
 
 
 -- ===================================== Added procedure
@@ -1794,6 +2018,20 @@ BEGIN
 END $$
 DELIMITER ;
 
+-- =========================================================================
+-- TEST CASES FOR sp_CreateOrder
+-- =========================================================================
+
+-- TEST CASE 1: Create Order from Cart 5 (Customer 5)
+SELECT * FROM Cart_Item WHERE CartID = 5; -- Check items exist
+CALL sp_CreateOrder(5, 4, 'Cash', 100.00);
+SELECT * FROM `Order` WHERE CustomerID = 5 ORDER BY OrderDate DESC LIMIT 1; -- Verify Order Created
+SELECT * FROM Cart_Item WHERE CartID = 5; -- Verify Cart Empty
+
+-- TEST CASE 2: Create Order from Cart 7 (Customer 7)
+SELECT * FROM Cart_Item WHERE CartID = 7;
+CALL sp_CreateOrder(7, 6, 'Credit Card', 50.00);
+SELECT * FROM `Order` WHERE CustomerID = 7 ORDER BY OrderDate DESC LIMIT 1;
 
 
 -- DROP TRIGGER IF EXISTS after_Order_insert_add_points;
@@ -1835,6 +2073,23 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+
+-- =========================================================================
+-- TEST CASES FOR ORDER POINTS TRIGGERS
+-- =========================================================================
+
+-- TEST CASE 1: Insert new completed order and check points increase
+SELECT LoyaltyPoints FROM Customer WHERE CustomerID = 1; -- Check before
+INSERT INTO `Order` (CustomerID, StoreID, Status, TotalPrice) VALUES (1, 1, 'Completed', 400.00);
+SELECT LoyaltyPoints FROM Customer WHERE CustomerID = 1; -- After: Should increase by 100
+
+-- TEST CASE 2: Update existing order to Completed and check points
+INSERT INTO `Order` (CustomerID, StoreID, Status, TotalPrice) VALUES (2, 1, 'Pending', 200.00);
+SET @PendingOrderID = LAST_INSERT_ID();
+SELECT LoyaltyPoints FROM Customer WHERE CustomerID = 2; -- Check before
+UPDATE `Order` SET Status = 'Completed' WHERE OrderID = @PendingOrderID;
+SELECT LoyaltyPoints FROM Customer WHERE CustomerID = 2; -- After: Should increase by 50
 
 
 -- -----------------------------------   Test Queries    -------------------------------------
