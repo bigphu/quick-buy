@@ -1,4 +1,8 @@
+import { useNavigate } from 'react-router-dom';
+
 export default function Navbar({ cartCount }) {
+  const navigate = useNavigate();
+
   return (
     <header className="w-full bg-gradient-to-r from-[#7BB0F9] to-[#89C3F8] shadow-sm">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -6,14 +10,17 @@ export default function Navbar({ cartCount }) {
         {/* LEFT: Logo + Menu */}
         <div className="flex items-center gap-10">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <div
+            className="flex items-center gap-2 cursor-pointer"
+            onClick={() => navigate('/')}
+          >
             <div className="w-5 h-5 bg-blue-700 rotate-45 rounded-sm"></div>
             <h1 className="text-xl font-bold text-black">QuickBuy</h1>
           </div>
 
           {/* Category Links */}
           <nav className="hidden md:flex items-center gap-8 text-gray-800 font-medium">
-            <a href="#" className="hover:text-gray-600">Home</a>
+            <a onClick={() => navigate('/')} className="hover:text-gray-600 cursor-pointer">Home</a>
             <a href="#" className="hover:text-gray-600">New Arrivals</a>
             <a href="#" className="hover:text-gray-600">Electronics</a>
             <a href="#" className="hover:text-gray-600">Grocery</a>
@@ -40,7 +47,10 @@ export default function Navbar({ cartCount }) {
             🤍
           </button>
 
-          <button className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-xl">
+          <button
+            onClick={() => navigate('/account')}
+            className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-xl"
+          >
             👤
           </button>
 
