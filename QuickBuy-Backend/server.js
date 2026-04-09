@@ -17,7 +17,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/client', clientRoutes);
 app.use('/api/admin', adminRoutes);
-const PORT = 8080;
+const PORT = Number(process.env.APP_PORT || 8080);
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });

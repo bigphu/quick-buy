@@ -8,12 +8,18 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 3000,
-    host: 'localhost'
+    host: 'localhost',
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
   },
   css: {
     postcss: {
       plugins: [
-        tailwindcss(), 
+        tailwindcss(),
         autoprefixer(),
       ],
     },

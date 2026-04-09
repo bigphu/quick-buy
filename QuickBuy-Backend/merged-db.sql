@@ -3,7 +3,7 @@ CREATE DATABASE QuickBuyDB;
 USE QuickBuyDB;
 
 
--------------------------------------   CREATE TABLE    -------------------------------------
+-- -----------------------------------   CREATE TABLE    -----------------------------------
 
 
 -- =====================================
@@ -415,7 +415,7 @@ CREATE TABLE Cart_Item (
         CHECK (ItemPrice >= 0)
 );
 
--------------------------------------   TRIGGER 2.2.2 – Shopping_Cart   -------------------------------------
+-- -----------------------------------   TRIGGER 2.2.2 - Shopping_Cart   -----------------------------------
 
 DELIMITER $$
 
@@ -479,7 +479,6 @@ BEGIN
 END$$
 
 /* 4. AFTER UPDATE: cập nhật TotalPrice + ItemCount (khi Quantity/Product/CartID đổi) */
-DELIMITER $$
 CREATE TRIGGER after_CartItem_update
 AFTER UPDATE ON Cart_Item
 FOR EACH ROW

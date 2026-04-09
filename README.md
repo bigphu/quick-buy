@@ -1,36 +1,67 @@
-# 🛒 QUICK BUY
+# quick-buy
+Semester 251 major assignment of Database system course at HCMUT
 
-In this project, I worked primarily as a **database designer**.
+## Run With Docker
 
-In particular, my role revolved around structuring the **Enhanced Entity-Relationship Diagram (EERD)** and **relational schema** to map e-commerce data
-structures.
+### Prerequisites
+- Docker Desktop (or Docker Engine + Compose)
 
-On top of that, implementing targeted end-to-end functionality to **query**, **sort**, and display the top-rated products for each specific category was a part of my duty during the development cycle. 
+### Steps
+1. Create a Docker env file from the template:
 
-## 🪟 Project Overview
+```powershell
+Copy-Item .env.docker.example .env
+```
 
-QuickBuy, is a business-to-consumer (B2C) e-commerce platform
-modeled after Walmart’s retail ecosystem, designed to simulate an online marketplace where customers can browse, purchase, and review a wide range of products. The platform integrates user registration, product search and categorization, shopping cart and wishlist management, secure payment processing, coupon-based discounts, shopping and search history tracking, and warehouse-based order fulfillment to provide a complete digital retail experience.
+```bash
+cp .env.docker.example .env
+```
 
-## 🎯 Project Objectives
+2. Start all services:
 
-The project aims to:
-- Develop a reliable system that supports customers and store administrators/staff in online shopping and in-store pickup operations.
-  
-- Enable product browsing, cart and checkout with payments and promotions, pickup timeslot assignment by staff, and order tracking. 
-  
-- Design a database which specifies entity types, attributes, relationships, and semantic constraints to ensure an efficient and scalable solution.
+```bash
+docker compose up --build
+```
 
-## 🧩 Database Design
+3. Open the app:
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:8080/api`
 
-### Enhanced Entity-Relationship Diagram (EERD)
+### Services
+- `db`: MySQL 8.0 with init script from `QuickBuy-Backend/merged-db.sql`
+- `backend`: Node/Express API on port `8080`
+- `frontend`: Vite app built and served by Nginx on port `3000`
 
-![EERD](./assets/eerd.drawio.png)
+### Backend Env Config
+If you run backend outside Docker, create backend env file from template:
 
-### Relational Schema
+```powershell
+Copy-Item QuickBuy-Backend/.env.example QuickBuy-Backend/.env
+```
 
-![Relational Schema](./assets/relational-schema.drawio.png)
+```bash
+cp QuickBuy-Backend/.env.example QuickBuy-Backend/.env
+```
 
-## ⚙️ Sorting Feature
+### Useful Commands
+- Stop and remove containers:
 
-![Sorting](./assets/quickbuy-all-products.png)
+```bash
+docker compose down
+```
+
+- Stop and remove containers + DB volume:
+
+```bash
+docker compose down -v
+```
+
+### Troubleshooting
+- If backend logs show `Table 'QuickBuyDB....' doesn't exist`, MySQL init likely failed or the volume has old state.
+- MySQL executes files in `/docker-entrypoint-initdb.d` only on first initialization of the data volume.
+- Reinitialize from SQL script:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
