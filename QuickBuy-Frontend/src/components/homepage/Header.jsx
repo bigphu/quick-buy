@@ -304,18 +304,19 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Search, MapPin, RotateCcw, Heart, User, ShoppingCart, LayoutGrid, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import cartApi from '../../services/cartApi'; // Import API để lấy số lượng
-import { getCartId } from "../../constants";
-
-// const CART_ID = getCartId(); // ID giả lập
+import { getAuthUser } from '../../services/auth';
+import { getCartId } from '../../constants';
 
 export default function Header({ categories = [], onCategorySelect }) {
     const navigate = useNavigate();
     const [cartCount, setCartCount] = useState(0);
-    
-    const fetchCartCount = async (currentCartId) => {
-        if (!currentCartId) return;
+    const authUser = getAuthUser();
+
+    // --- LOGIC 1: Lấy số lượng giỏ hàng thực tế ---
+    const fetchCartCount = async () => {
         try {
-            const response = await cartApi.getCart(currentCartId);
+            const response = await cartApi.getCart(getCartId());
+            // Tính tổng Quantity của các item trong giỏ
             const totalItems = response.data.reduce((sum, item) => sum + item.Quantity, 0);
             setCartCount(totalItems);
         } catch (error) {
@@ -402,9 +403,17 @@ export default function Header({ categories = [], onCategorySelect }) {
                     {/* Right Icons */}
                     <div className="flex items-center gap-6 shrink-0">
                         <div className="flex items-center gap-6 text-slate-900 font-medium text-sm ">
-                            <button onClick={() => navigate('/account')} className="flex items-center gap-2 hover:text-blue-600">
+                            <button
+                                onClick={() => navigate(authUser?.role === 'admin' ? '/admin' : authUser?.role === 'customer' ? '/account' : '/login')}
+                                className="flex items-center gap-2 hover:text-blue-600"
+                            >
                                 <User className="w-5 h-5" /><span>Account</span>
                             </button>
+                            {!authUser && (
+                                <button onClick={() => navigate('/login')} className="flex items-center gap-2 hover:text-blue-600">
+                                    <span>Login</span>
+                                </button>
+                            )}
                         </div>
                         
                         {/* CART ICON + BADGE SỐ LƯỢNG THỰC */}

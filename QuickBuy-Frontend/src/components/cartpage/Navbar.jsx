@@ -1,7 +1,9 @@
 import { useNavigate } from 'react-router-dom';
+import { getAuthUser } from '../../services/auth';
 
 export default function Navbar({ cartCount }) {
   const navigate = useNavigate();
+  const authUser = getAuthUser();
 
   return (
     <header className="w-full bg-gradient-to-r from-[#7BB0F9] to-[#89C3F8] shadow-sm">
@@ -48,7 +50,7 @@ export default function Navbar({ cartCount }) {
           </button>
 
           <button
-            onClick={() => navigate('/account')}
+            onClick={() => navigate(authUser?.role === 'admin' ? '/admin' : authUser?.role === 'customer' ? '/account' : '/login')}
             className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center text-xl"
           >
             👤

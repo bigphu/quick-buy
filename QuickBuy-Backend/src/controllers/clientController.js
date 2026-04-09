@@ -65,9 +65,9 @@ exports.updateLoyaltyPoints = async (req, res) => {
         const { clientId } = req.params;
         const { pointsToAdd } = req.body;
         await db.execute(`
-            UPDATE Client
+            UPDATE Customer
             SET LoyaltyPoints = LoyaltyPoints + ?
-            WHERE ClientID = ?
+            WHERE CustomerID = ?
         `, [pointsToAdd, clientId]);
         res.json({ message: "Loyalty points updated successfully" });
     } catch (error) {

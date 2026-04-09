@@ -32,6 +32,12 @@ docker compose up --build
 - `backend`: Node/Express API on port `8080`
 - `frontend`: Vite app built and served by Nginx on port `3000`
 
+### Login
+- Open the login page at `http://localhost:3000/login`
+- Use the email and password stored in the `Admin` or `Customer` tables
+- Admin logins redirect to `/admin`, customer logins redirect to `/account`
+- The current seed data uses plain text passwords in the database for assignment purposes
+
 ### Backend Env Config
 If you run backend outside Docker, create backend env file from template:
 

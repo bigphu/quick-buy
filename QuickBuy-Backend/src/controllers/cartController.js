@@ -156,9 +156,11 @@ exports.getCoupon = async (req, res) => {
         WHERE StoreID = ?
             
             `, [storeId]);
-        // Implement logic to validate coupon based on storeId
-        // This is a placeholder response
-        res.status(200).json(rows, { message: "Lấy coupon thành công!" });
+        res.status(200).json({
+            success: true,
+            message: "Lấy coupon thành công!",
+            data: rows
+        });
     } catch (error) {
         res.status(400).json({ message: error.sqlMessage || "Lỗi fetch coupon" });
     }
@@ -211,7 +213,10 @@ exports.createOrder = async (req, res) => {
         await db.execute('CALL sp_CreateOrder(?, ?, ?, ?)', [
             cartId, storeId, paymentMethod, totalAmount
         ]);
-        res.status(200).json({ message: "Tạo đơn hàng thành công!" });
+        res.status(200).json({
+            success: true,
+            message: "Tạo đơn hàng thành công!"
+        });
     }
     catch (error) {
         res.status(400).json({ message: error.sqlMessage || "Lỗi tạo đơn hàng" });

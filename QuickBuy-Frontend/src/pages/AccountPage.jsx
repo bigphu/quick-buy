@@ -5,6 +5,7 @@ import axiosClient from '../services/axiosClient'; // Dùng axiosClient đã con
 import cartApi from '../services/cartApi';
 import UserStoreSelector from '../components/common/UserStoreSelector';
 import { getCartId, getCustomerId, getStoreId } from '../constants';
+import { clearAuthUser } from '../services/auth';
 
 import {
   LayoutDashboard,
@@ -21,8 +22,7 @@ import {
   User,
   ShoppingCart,
   ChevronRight,
-  Crown,
-  Hammer
+  Crown
 } from 'lucide-react';
 
 // Component: Header
@@ -99,7 +99,7 @@ const Header = ({ cartCount }) => {
 };
 
 // Component: Sidebar
-const Sidebar = ({ activeTab, setActiveTab, userInfo }) => {
+const Sidebar = ({ activeTab, setActiveTab, userInfo, onLogout }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'orders', label: 'Order History', icon: Package },
@@ -133,7 +133,10 @@ const Sidebar = ({ activeTab, setActiveTab, userInfo }) => {
             </button>
           );
         })}
-        <button className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 mt-4">
+        <button
+          onClick={onLogout}
+          className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 mt-4"
+        >
           <LogOut className="w-5 h-5" />
           <span>Sign Out</span>
         </button>
@@ -200,8 +203,10 @@ const LoyaltyCard = ({ userInfo }) => {
 const OrderCard = ({ order }) => {
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Delivered': return 'bg-green-100 text-green-700 border-green-200';
-      case 'Processing': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'Completed': return 'bg-green-100 text-green-700 border-green-200';
+      case 'Awaiting Picking': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'Ready for Pickup': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+      case 'Pending': return 'bg-amber-100 text-amber-700 border-amber-200';
       case 'Cancelled': return 'bg-red-100 text-red-700 border-red-200';
       default: return 'bg-gray-100 text-gray-700';
     }
@@ -261,7 +266,8 @@ const OrderCard = ({ order }) => {
 };
 
 const AccountPage = () => {
-  const [activeTab, setActiveTab] = useState('orders');
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [orderFilter, setOrderFilter] = useState('All');
   const [cartCount, setCartCount] = useState(0);
   const [customerId, setCustomerId] = useState(getCustomerId());
   const [cartId, setCartId] = useState(getCartId());
@@ -320,6 +326,11 @@ const AccountPage = () => {
     fetchData();
   }, [customerId, cartId]);
 
+  const filteredOrders = orders.filter((order) => {
+    if (orderFilter === 'All') return true;
+    return order.status === orderFilter;
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -347,40 +358,93 @@ const AccountPage = () => {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Left Sidebar */}
           <aside className="w-full lg:w-1/4">
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} userInfo={userInfo} />
+            <Sidebar
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              userInfo={userInfo}
+              onLogout={() => {
+                clearAuthUser();
+                navigate('/login');
+              }}
+            />
           </aside>
 
           {/* Main Content */}
           <main className="w-full lg:w-3/4">
+            <div className="flex justify-end mb-4">
+              <button
+                onClick={() => {
+                  clearAuthUser();
+                  navigate('/login');
+                }}
+                className="inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-sm border border-gray-100 hover:bg-red-50"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
+            </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-6">
               {activeTab === 'orders' ? 'Order History' :
-                activeTab === 'loyalty' ? 'Loyalty Program' : 'Dashboard'}
+                activeTab === 'loyalty' ? 'Loyalty Program' :
+                  activeTab === 'address' ? 'Address Book' :
+                    activeTab === 'payment' ? 'Payment Methods' :
+                      activeTab === 'settings' ? 'Account Settings' : 'Dashboard'}
             </h1>
 
             {/* Always show Loyalty Card on top */}
             <LoyaltyCard userInfo={userInfo} />
 
             {/* Content Sections */}
+            {activeTab === 'dashboard' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+                  <h3 className="text-sm text-gray-500">Total Orders</h3>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{orders.length}</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+                  <h3 className="text-sm text-gray-500">Current Cart Items</h3>
+                  <p className="text-3xl font-bold text-gray-900 mt-2">{cartCount}</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+                  <h3 className="text-sm text-gray-500">Email</h3>
+                  <p className="text-lg font-semibold text-gray-900 mt-2 break-all">{userInfo.email}</p>
+                </div>
+                <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+                  <h3 className="text-sm text-gray-500">Member Tier</h3>
+                  <p className="text-lg font-semibold text-gray-900 mt-2">
+                    {userInfo.points >= 5000 ? 'Platinum' : userInfo.points >= 2000 ? 'Gold' : userInfo.points >= 500 ? 'Silver' : 'Bronze'}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'orders' && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-gray-800">Recent Orders</h3>
                   <div className="flex bg-gray-100 p-1 rounded-lg">
-                    {['All', 'Processing', 'Delivered', 'Cancelled'].map(filter => (
-                      <button key={filter} className="px-3 py-1 text-xs font-medium rounded-md text-gray-600 hover:bg-white hover:shadow-sm transition-all">
+                    {['All', 'Pending', 'Awaiting Picking', 'Ready for Pickup', 'Completed', 'Cancelled'].map(filter => (
+                      <button
+                        key={filter}
+                        onClick={() => setOrderFilter(filter)}
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${orderFilter === filter
+                          ? 'bg-white shadow-sm text-blue-600'
+                          : 'text-gray-600 hover:bg-white hover:shadow-sm'
+                          }`}
+                      >
                         {filter}
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {orders.length === 0 ? (
+                {filteredOrders.length === 0 ? (
                   <div className="bg-white p-12 rounded-xl border border-dashed border-gray-300 text-center text-gray-500">
                     <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No orders found.</p>
+                    <p>No orders found for the selected filter.</p>
                   </div>
                 ) : (
-                  orders.map((order, index) => (
+                  filteredOrders.map((order, index) => (
                     <OrderCard key={index} order={order} />
                   ))
                 )}
@@ -393,10 +457,46 @@ const AccountPage = () => {
               </div>
             )}
 
-            {activeTab !== 'orders' && (
-              <div className="bg-white p-12 rounded-xl border border-dashed border-gray-300 text-center text-gray-500">
-                <Hammer className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p>This section is under construction for the demo.</p>
+            {activeTab === 'loyalty' && (
+              <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-2">Loyalty Snapshot</h3>
+                <p className="text-gray-600 text-sm">Your current loyalty points are calculated from completed orders using the backend function.</p>
+                <p className="text-3xl font-bold text-blue-600 mt-4">{userInfo.points.toLocaleString()} pts</p>
+              </div>
+            )}
+
+            {activeTab === 'address' && (
+              <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-4">Default Address</h3>
+                <div className="text-gray-700 space-y-1">
+                  <p>{userInfo.name}</p>
+                  <p>{userInfo.email}</p>
+                  <p>Address details are loaded from profile in backend.</p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'payment' && (
+              <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-4">Payment Methods</h3>
+                <ul className="space-y-2 text-gray-700">
+                  <li>Credit Card</li>
+                  <li>Debit Card</li>
+                  <li>E-Wallet</li>
+                  <li>Cash</li>
+                  <li>Bank Transfer</li>
+                </ul>
+              </div>
+            )}
+
+            {activeTab === 'settings' && (
+              <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+                <h3 className="font-semibold text-gray-900 mb-4">Account Settings</h3>
+                <div className="space-y-2 text-gray-700">
+                  <p>Name: {userInfo.name}</p>
+                  <p>Email: {userInfo.email}</p>
+                  <p>To update account info, use backend profile endpoints.</p>
+                </div>
               </div>
             )}
           </main>
