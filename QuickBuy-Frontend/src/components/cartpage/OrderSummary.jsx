@@ -81,10 +81,10 @@ export default function OrderSummary({ subtotal, tax, total, applyCoupon, coupon
             <div className="font-semibold">✔ {couponDetails.name} applied!</div>
             <div className="text-xs mt-1">{couponDetails.description}</div>
             {couponDetails.discountValue > 0 && (
-              <div className="text-xs">{couponDetails.discountValue}% off</div>
+              <div className="text-xs">-${couponDetails.discountValue.toFixed(2)} discount</div>
             )}
             {couponDetails.couponAmount > 0 && (
-              <div className="text-xs">${couponDetails.couponAmount.toFixed(2)} discount</div>
+              <div className="text-xs">Remaining coupons: {couponDetails.couponAmount}</div>
             )}
           </div>
         )}

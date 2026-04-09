@@ -1,8 +1,11 @@
 
 import Layout from '../components/homepage/Layout';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import userIdAPI from '../services/userId'
 import UserStoreSelector from '../components/common/UserStoreSelector';
+import axiosClient from '../services/axiosClient';
+import { clearAuthUser } from '../services/auth';
 import {
   Award,
   Search as SearchIcon,
@@ -14,38 +17,32 @@ import {
   ShoppingBag
 } from 'lucide-react';
 
-// Mock data for demonstration
-
-const STATS_DATA = [
+const buildStatsData = (stats) => ([
   {
     title: "Total Revenue",
-    value: "$54,230",
-    change: "+12.5%",
+    value: `$${stats.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 2 })}`,
     icon: DollarSign,
     color: "bg-green-100 text-green-600"
   },
   {
     title: "Total Sales",
-    value: "1,203",
-    change: "+8.2%",
+    value: stats.totalSales.toLocaleString(),
     icon: ShoppingBag,
     color: "bg-blue-100 text-blue-600"
   },
   {
     title: "Active Users",
-    value: "2,543",
-    change: "-2.4%",
+    value: stats.activeUsers.toLocaleString(),
     icon: Users,
     color: "bg-indigo-100 text-indigo-600"
   },
   {
     title: "Total Loyalty Points",
-    value: "2,350 pts",
-    change: "+15.2%",
+    value: `${stats.totalLoyaltyPoints.toLocaleString()} pts`,
     icon: Award,
     color: "bg-purple-100 text-purple-600"
   }
-];
+]);
 
 // Component: Loyalty Points Checker
 const LoyaltyChecker = () => {
@@ -186,10 +183,12 @@ const StatCard = ({ title, value, change, icon: Icon, color }) => (
       <div className={`p-3 rounded-lg ${color}`}>
         <Icon size={24} />
       </div>
-      <div className="text-sm font-semibold text-green-600">
-        <TrendingUp size={16} className="inline mr-1" />
-        {change}
-      </div>
+      {change && (
+        <div className="text-sm font-semibold text-green-600">
+          <TrendingUp size={16} className="inline mr-1" />
+          {change}
+        </div>
+      )}
     </div>
     <div>
       <h3 className="text-slate-500 text-sm font-medium mb-1">{title}</h3>
@@ -303,10 +302,10 @@ const StockChecker = () => {
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h4 className="text-xl font-bold text-slate-800 truncate">{stockInfo.name}</h4>
                       <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${stockInfo.status === 'In Stock'
-                          ? 'bg-green-100 text-green-700'
-                          : stockInfo.status === 'Low Stock'
-                            ? 'bg-yellow-100 text-yellow-700'
-                            : 'bg-red-100 text-red-700'
+                        ? 'bg-green-100 text-green-700'
+                        : stockInfo.status === 'Low Stock'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : 'bg-red-100 text-red-700'
                         }`}>
                         {stockInfo.status}
                       </span>
@@ -346,8 +345,8 @@ const StockChecker = () => {
                     <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all duration-500 ${stockInfo.stock > 50 ? 'bg-green-500' :
-                            stockInfo.stock > 20 ? 'bg-yellow-500' :
-                              'bg-red-500'
+                          stockInfo.stock > 20 ? 'bg-yellow-500' :
+                            'bg-red-500'
                           }`}
                         style={{ width: `${Math.min((stockInfo.stock / 100) * 100, 100)}%` }}
                       ></div>
@@ -414,6 +413,33 @@ const StockChecker = () => {
 };
 // Main Admin Page Component
 export default function AdminPage() {
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    totalSales: 0,
+    activeUsers: 0,
+    totalLoyaltyPoints: 0
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await axiosClient.get('/admin/dashboard-stats');
+        setStats({
+          totalRevenue: Number(res.data.totalRevenue || 0),
+          totalSales: Number(res.data.totalSales || 0),
+          activeUsers: Number(res.data.activeUsers || 0),
+          totalLoyaltyPoints: Number(res.data.totalLoyaltyPoints || 0)
+        });
+      } catch (error) {
+        console.error('Failed to fetch dashboard stats:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const statsData = buildStatsData(stats);
 
   return (
     <>
@@ -423,13 +449,24 @@ export default function AdminPage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Header */}
             <div className="mb-8">
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => {
+                    clearAuthUser();
+                    navigate('/login');
+                  }}
+                  className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-sm border border-slate-200 hover:bg-red-50"
+                >
+                  Sign Out
+                </button>
+              </div>
               <h1 className="text-3xl font-bold text-slate-900 mb-2">Admin Dashboard</h1>
               <p className="text-slate-600">Monitor your store performance and customer loyalty</p>
             </div>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {STATS_DATA.map((stat, index) => (
+              {statsData.map((stat, index) => (
                 <StatCard key={index} {...stat} />
               ))}
             </div>

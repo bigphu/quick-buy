@@ -204,7 +204,8 @@ export default function CartPage() {
   // --- TÍNH TOÁN ---
   const cartCount = items.reduce((count, item) => count + item.quantity, 0);
   const subtotalRaw = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const subtotal = couponApplied ? subtotalRaw * 0.9 : subtotalRaw;
+  const discountValue = couponApplied ? Number(couponDetails?.discountValue || 0) : 0;
+  const subtotal = Math.max(0, subtotalRaw - discountValue);
   const tax = subtotal * 0.065; // Thuế 6.5%
   const total = subtotal + tax;
 
@@ -226,8 +227,7 @@ export default function CartPage() {
       }
 
       const response = await cartApi.getCoupon(storeId);
-      const coupons = response.data;
-      console.log(response)
+      const coupons = response.data?.data || [];
       const matched = coupons.find(c => c.Name.trim().toLowerCase() === code.trim().toLowerCase());
       if (matched) {
         const now = new Date();
@@ -242,12 +242,12 @@ export default function CartPage() {
           return { success: false };
         }
         setCouponApplied(true);
-        // setCouponDetails({
-        //   name: matched.Name,
-        //   description: matched.Description,
-        //   discountValue: matched.DiscountValue,
-        //   couponAmount: matched.CouponAmount
-        // });
+        setCouponDetails({
+          name: matched.Name,
+          description: matched.Description,
+          discountValue: Number(matched.DiscountValue || 0),
+          couponAmount: Number(matched.CouponAmount || 0)
+        });
         return { success: true };
       }
       return { success: false };
@@ -285,9 +285,26 @@ export default function CartPage() {
             Shopping Cart ({items.length} items)
           </h1>
 
-          {/* === DEMO INSERT SECTION (Yêu cầu 3.1) === */}
-
-          {/* =========================================== */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+            <p className="font-semibold text-gray-800">Quick Add Product</p>
+            <p className="text-sm text-gray-500 mb-3">Nhập Product ID để thêm nhanh 1 sản phẩm vào giỏ.</p>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min="1"
+                value={newProductId}
+                onChange={(e) => setNewProductId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none"
+                placeholder="Ví dụ: 1"
+              />
+              <button
+                onClick={handleQuickAdd}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Add
+              </button>
+            </div>
+          </div>
 
           {items.length === 0 ? (
             <div className="text-center py-10 bg-white rounded-2xl shadow-sm">

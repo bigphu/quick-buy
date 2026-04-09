@@ -82,3 +82,31 @@ exports.getAllStores = async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+exports.getDashboardStats = async (req, res) => {
+    try {
+        const [[orderStats]] = await db.query(`
+            SELECT
+                COUNT(*) AS totalSales,
+                IFNULL(SUM(TotalPrice), 0) AS totalRevenue
+            FROM \`Order\`
+        `);
+
+        const [[customerStats]] = await db.query(`
+            SELECT
+                COUNT(*) AS activeUsers,
+                IFNULL(SUM(LoyaltyPoints), 0) AS totalLoyaltyPoints
+            FROM Customer
+        `);
+
+        res.json({
+            totalRevenue: Number(orderStats.totalRevenue || 0),
+            totalSales: Number(orderStats.totalSales || 0),
+            activeUsers: Number(customerStats.activeUsers || 0),
+            totalLoyaltyPoints: Number(customerStats.totalLoyaltyPoints || 0)
+        });
+    } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};

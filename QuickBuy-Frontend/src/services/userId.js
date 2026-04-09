@@ -1,14 +1,11 @@
 
 import axiosClient from './axiosClient';
-console.log('asfsdfdsgdfgdfgfdf');
 
 const userIdAPI = {
-    getId: (custId) =>{
-        console.log('123');
+    getId: (custId) => {
         return axiosClient.get(`/admin/user/${custId}`)
     },
-    getsuperId: (productId) =>{
-        console.log('12333');
+    getsuperId: (productId) => {
         return axiosClient.get(`/admin/product/${productId}`)
     }
 };
