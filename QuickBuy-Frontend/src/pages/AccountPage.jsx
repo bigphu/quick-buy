@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../services/axiosClient'; // Dùng axiosClient đã config port 8080
 import cartApi from '../services/cartApi';
-import UserStoreSelector from '../components/common/UserStoreSelector';
+import userIdAPI from '../services/userId';
 import { getCartId, getCustomerId, getStoreId } from '../constants';
 import { clearAuthUser } from '../services/auth';
 
@@ -200,7 +200,7 @@ const LoyaltyCard = ({ userInfo }) => {
 };
 
 // Component: Order Card
-const OrderCard = ({ order }) => {
+const OrderCard = ({ order, onViewDetails, onReorder }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Completed': return 'bg-green-100 text-green-700 border-green-200';
@@ -253,10 +253,16 @@ const OrderCard = ({ order }) => {
 
         {/* Actions */}
         <div className="flex gap-3 w-full sm:w-auto">
-          <button className="flex-1 sm:flex-none px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+          <button
+            onClick={() => onViewDetails(order)}
+            className="flex-1 sm:flex-none px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          >
             View Details
           </button>
-          <button className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200">
+          <button
+            onClick={() => onReorder(order)}
+            className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 rounded-lg text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm shadow-blue-200"
+          >
             Reorder
           </button>
         </div>
@@ -277,15 +283,10 @@ const AccountPage = () => {
     points: 0
   });
   const [orders, setOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [reorderLoadingId, setReorderLoadingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-
-  // Handle selector change
-  const handleSelectorChange = () => {
-    setCustomerId(getCustomerId());
-    setCartId(getCartId());
-    setLoading(true);
-  };
 
   const fetchData = async () => {
     try {
@@ -306,11 +307,19 @@ const AccountPage = () => {
       // Fetch order history
       const ordersRes = await axiosClient.get(`/client/${customerId}/order-history`);
       const ordersData = ordersRes.data.orders.map(order => ({
+        orderId: order.OrderID,
         id: `#${order.OrderID.toString().padStart(6, '0')}`,
         date: new Date(order.OrderDate).toLocaleDateString(),
         status: order.Status,
         total: Number(order.TotalPrice) || 0,
-        items: []
+        items: (order.items || []).map((item) => ({
+          id: item.OrderedItemID,
+          productId: item.ProductID,
+          name: item.ProductName,
+          img: item.PictureUrl,
+          quantity: item.Quantity,
+          itemPrice: Number(item.ItemPrice || 0)
+        }))
       }));
       setOrders(ordersData);
     } catch (error) {
@@ -331,6 +340,27 @@ const AccountPage = () => {
     return order.status === orderFilter;
   });
 
+  const handleReorder = async (order) => {
+    setReorderLoadingId(order.orderId);
+    try {
+      const response = await userIdAPI.reorderFromHistory(customerId, order.orderId);
+      const result = response.data;
+
+      if (result.failedCount > 0) {
+        alert(`${result.message} Added: ${result.addedCount}, Failed: ${result.failedCount}`);
+      } else {
+        alert('Reorder thành công. Sản phẩm đã được thêm vào giỏ hàng.');
+      }
+
+      await fetchData();
+      navigate('/cart');
+    } catch (error) {
+      alert(error.response?.data?.message || 'Reorder failed.');
+    } finally {
+      setReorderLoadingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -341,7 +371,6 @@ const AccountPage = () => {
 
   return (
     <div className="min-h-screen pb-12 bg-gray-50">
-      <UserStoreSelector onChangeCallback={handleSelectorChange} />
       <Header cartCount={cartCount} />
 
       <div className="container mx-auto px-4 py-8">
@@ -445,7 +474,12 @@ const AccountPage = () => {
                   </div>
                 ) : (
                   filteredOrders.map((order, index) => (
-                    <OrderCard key={index} order={order} />
+                    <OrderCard
+                      key={index}
+                      order={order}
+                      onViewDetails={(selected) => setSelectedOrder(selected)}
+                      onReorder={handleReorder}
+                    />
                   ))
                 )}
 
@@ -502,6 +536,52 @@ const AccountPage = () => {
           </main>
         </div>
       </div>
+
+      {selectedOrder && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl p-6 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-gray-900">Order Details {selectedOrder.id}</h3>
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="px-3 py-1 rounded-lg text-sm font-medium bg-gray-100 hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">Date: {selectedOrder.date} | Status: {selectedOrder.status}</p>
+
+            {selectedOrder.items.length === 0 ? (
+              <p className="text-gray-500">No items in this order.</p>
+            ) : (
+              <div className="space-y-3">
+                {selectedOrder.items.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between border border-gray-100 rounded-xl p-3">
+                    <div className="flex items-center gap-3">
+                      <img src={item.img} alt={item.name} className="w-12 h-12 rounded-lg object-cover bg-gray-100" />
+                      <div>
+                        <p className="font-semibold text-gray-900">{item.name}</p>
+                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                      </div>
+                    </div>
+                    <p className="font-semibold text-gray-900">${item.itemPrice.toFixed(2)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => handleReorder(selectedOrder)}
+                disabled={reorderLoadingId === selectedOrder.orderId}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+              >
+                {reorderLoadingId === selectedOrder.orderId ? 'Reordering...' : 'Reorder This'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

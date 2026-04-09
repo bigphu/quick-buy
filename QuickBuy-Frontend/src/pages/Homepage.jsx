@@ -87,7 +87,6 @@ import Layout from '../components/homepage/Layout';
 import HeroSection from '../components/homepage/HeroSection';
 import ContentSection from '../components/homepage/ContentSection';
 import axiosClient from '../services/axiosClient'; // Dùng axiosClient đã config port 8080
-import UserStoreSelector from '../components/common/UserStoreSelector';
 import { getStoreId } from '../constants';
 
 export default function Homepage() {
@@ -117,11 +116,6 @@ export default function Homepage() {
     // Load all products for this store by default
     fetchAllProducts();
   }, []);
-
-  // Handle store change from selector
-  const handleSelectorChange = () => {
-    setStoreId(getStoreId());
-  };
 
   // Fetch ALL products for current store
   const fetchAllProducts = async () => {
@@ -165,16 +159,13 @@ export default function Homepage() {
   }, [storeId]);
 
   return (
-    <>
-      <UserStoreSelector onChangeCallback={handleSelectorChange} />
-      <Layout categories={categories} onCategorySelect={fetchTopRated}>
-        <HeroSection />
-        <ContentSection
-          products={products}
-          currentCategory={activeCategory}
-          isLoading={loading}
-        />
-      </Layout>
-    </>
+    <Layout categories={categories} onCategorySelect={fetchTopRated}>
+      <HeroSection />
+      <ContentSection
+        products={products}
+        currentCategory={activeCategory}
+        isLoading={loading}
+      />
+    </Layout>
   );
 }

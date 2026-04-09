@@ -3,7 +3,6 @@ import Layout from '../components/homepage/Layout';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import userIdAPI from '../services/userId'
-import UserStoreSelector from '../components/common/UserStoreSelector';
 import axiosClient from '../services/axiosClient';
 import { clearAuthUser } from '../services/auth';
 import {
@@ -51,8 +50,6 @@ const LoyaltyChecker = () => {
   const [points, setPoints] = useState(null);
   const [customerInfo, setCustomerInfo] = useState(null);
   const [error, setError] = useState('');
-  console.log(custId);
-  console.log(points);
   const HandleCheck = async (e) => {
     e.preventDefault();
     if (!custId) return;
@@ -67,7 +64,7 @@ const LoyaltyChecker = () => {
       setCustomerInfo({
         name: `${data.FirstName} ${data.LastName}`, // Combine names
         email: data.Email,
-        id: data.UserID
+        id: data.CustomerID
       });
     } catch (err) {
       console.error(err);
@@ -201,7 +198,6 @@ const StockChecker = () => {
   const [loading, setLoading] = useState(false);
   const [stockInfo, setStockInfo] = useState(null);
   const [error, setError] = useState('');
-  console.log(custId);
   const HandleCheck = async (e) => {
     e.preventDefault();
     if (!custId) return;
@@ -443,7 +439,6 @@ export default function AdminPage() {
 
   return (
     <>
-      <UserStoreSelector />
       <Layout>
         <div className="bg-slate-50 min-h-screen py-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

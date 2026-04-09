@@ -39,12 +39,12 @@ exports.tue2 = async (req, res) => {
             return res.status(404).json({ message: 'Product not found' });
         }
 
-        const [pointsResult] = await db.query('SELECT fn_getstockstatuslabel(?) as points', [productId]);
-        const query2 = 'SELECT Quantity FROM store_product WHERE ProductID = ?';
-        const [point] = await db.query(query2, [productId]);
+        const [pointsResult] = await db.query('SELECT fn_getstockstatuslabel(?) as statusLabel', [productId]);
+        const query2 = 'SELECT IFNULL(SUM(Quantity), 0) AS TotalStock FROM store_product WHERE ProductID = ?';
+        const [stockRows] = await db.query(query2, [productId]);
 
-        results[0].status = pointsResult[0].points;
-        results[0].stock = point[0].Quantity;
+        results[0].status = pointsResult[0].statusLabel;
+        results[0].stock = Number(stockRows[0].TotalStock || 0);
         console.log(results[0]);
         res.json(results[0]);
     } catch (error) {

@@ -7,7 +7,10 @@ const userIdAPI = {
     },
     getsuperId: (productId) => {
         return axiosClient.get(`/admin/product/${productId}`)
-    }
+    },
+    reorderFromHistory: (clientId, orderId) => {
+        return axiosClient.post(`/client/${clientId}/order-history/${orderId}/reorder`)
+    },
 };
 
 
