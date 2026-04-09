@@ -95,7 +95,6 @@ import CartItem from "../components/cartpage/CartItem";
 import OrderSummary from "../components/cartpage/OrderSummary";
 import Footer from "../components/cartpage/Footer";
 import cartApi from "../services/cartApi";
-import UserStoreSelector from "../components/common/UserStoreSelector";
 import { getCartId, getStoreId } from "../constants";
 
 export default function CartPage() {
@@ -108,15 +107,6 @@ export default function CartPage() {
 
   // State cho Demo Insert
   const [newProductId, setNewProductId] = useState("");
-
-  // Handle selector change - reload page data
-  const handleSelectorChange = () => {
-    setCartId(getCartId());
-    setStoreId(getStoreId());
-    setCouponApplied(false);
-    setCouponDetails(null);
-    setLoading(true);
-  };
 
   // --- 1. LẤY DỮ LIỆU TỪ DB ---
   const fetchCart = async () => {
@@ -275,7 +265,6 @@ export default function CartPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
-      <UserStoreSelector onChangeCallback={handleSelectorChange} />
       <Navbar cartCount={cartCount} />
 
       <main className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-3 gap-12">
