@@ -1,0 +1,49 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: quickbuy-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-quickbuy_root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-QuickBuyDB}
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./QuickBuy-Backend/merged-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-quickbuy_root_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./QuickBuy-Backend
+    container_name: quickbuy-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-quickbuy_root_password}
+      DB_NAME: ${MYSQL_DATABASE:-QuickBuyDB}
+      APP_PORT: 8080
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./QuickBuy-Frontend
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: quickbuy-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "3000:80"
+
+volumes:
+  db_data:
