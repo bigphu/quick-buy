@@ -321,14 +321,34 @@ export default function Header({ categories = [], onCategorySelect }) {
             setCartCount(totalItems);
         } catch (error) {
             console.error("Failed to fetch cart count", error);
+            setCartCount(0); // Reset count on error or new user empty cart
         }
     };
 
     useEffect(() => {
-        fetchCartCount();
-        // Lắng nghe sự kiện khi thêm hàng để cập nhật số ngay lập tức
-        window.addEventListener('cartUpdated', fetchCartCount);
-        return () => window.removeEventListener('cartUpdated', fetchCartCount);
+        // Initial fetch
+        fetchCartCount(getCartId());
+
+        // 2. Handler for when User/Customer changes
+        const handleUserChange = () => {
+            const newId = getCartId(); // Get fresh ID from localStorage/constants
+            fetchCartCount(newId);
+        };
+
+        // 3. Handler for when Cart updates (Add to cart)
+        const handleCartUpdate = () => {
+            fetchCartCount(getCartId());
+        };
+
+        // Add Event Listeners
+        window.addEventListener('customerChanged', handleUserChange); // Listens to UserStoreSelector
+        window.addEventListener('cartUpdated', handleCartUpdate);     // Listens to Add To Cart
+
+        // Cleanup
+        return () => {
+            window.removeEventListener('customerChanged', handleUserChange);
+            window.removeEventListener('cartUpdated', handleCartUpdate);
+        };
     }, []);
 
     // --- LOGIC 2: Xử lý cuộn Category (Scroll) ---
